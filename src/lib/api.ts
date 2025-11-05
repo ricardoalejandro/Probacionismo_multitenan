@@ -34,7 +34,7 @@ class ApiClient {
         if (error.response?.status === 401) {
           if (typeof window !== 'undefined') {
             localStorage.removeItem('auth_token');
-            window.location.href = '/login';
+            // Redirect will be handled by the component that catches the error
           }
         }
         return Promise.reject(error);

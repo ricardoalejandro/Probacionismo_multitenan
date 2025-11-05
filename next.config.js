@@ -5,14 +5,8 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/:path*`,
-      },
-    ];
-  },
+  // Note: Rewrites are optional and only used if API is on different domain
+  // For production, configure NEXT_PUBLIC_API_URL to point to your API domain
 };
 
 module.exports = nextConfig;

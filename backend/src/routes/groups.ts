@@ -84,16 +84,41 @@ export const groupRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/:id/generate-schedule', async (request, reply) => {
     const { id } = request.params as { id: string };
     
-    // This would generate class sessions based on the group's frequency and selected days
-    // Simplified implementation
+    // Get group details
     const [group] = await db.select().from(classGroups).where(eq(classGroups.id, id)).limit(1);
     
     if (!group) {
       return reply.code(404).send({ error: 'Group not found' });
     }
     
+    // Get group courses and selected days
+    const [courses, days] = await Promise.all([
+      db.select().from(groupCourses).where(eq(groupCourses.groupId, id)),
+      db.select().from(groupSelectedDays).where(eq(groupSelectedDays.groupId, id)),
+    ]);
+    
+    if (courses.length === 0 || days.length === 0) {
+      return reply.code(400).send({ error: 'Group must have courses and selected days' });
+    }
+    
+    // Generate basic sessions (simplified)
+    // In a real implementation, this would generate sessions based on frequency and dates
+    const sessionsToCreate = [];
+    for (let i = 0; i < courses.length; i++) {
+      const course = courses[i];
+      // Create one session per course as a placeholder
+      sessionsToCreate.push({
+        groupId: id,
+        sessionNumber: i + 1,
+        date: new Date(group.startDate).toISOString().split('T')[0],
+        courseId: course.courseId,
+        instructorId: course.instructorId,
+      });
+    }
+    
+    await db.insert(classSessions).values(sessionsToCreate);
     await db.update(classGroups).set({ isScheduleGenerated: true }).where(eq(classGroups.id, id));
     
-    return { success: true, message: 'Schedule generated' };
+    return { success: true, message: 'Schedule generated', sessionsCreated: sessionsToCreate.length };
   });
 };

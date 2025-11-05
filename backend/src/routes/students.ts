@@ -65,8 +65,11 @@ export const studentRoutes: FastifyPluginAsync = async (fastify) => {
     const data = request.body as any;
     const [student] = await db.insert(students).values(data).returning();
     
-    // Invalidate cache
-    await redisClient.del(`students:${data.branchId}:*`);
+    // Invalidate cache - Delete all keys matching the pattern
+    const keys = await redisClient.keys(`students:${data.branchId}:*`);
+    if (keys.length > 0) {
+      await redisClient.del(keys);
+    }
     
     return student;
   });
