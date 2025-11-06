@@ -7,7 +7,19 @@ export const courseRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', async (request, reply) => {
     const { branchId } = request.query as { branchId: string };
     const courseList = await db.select().from(courses).where(eq(courses.branchId, branchId));
-    return courseList;
+    
+    // Fetch themes for all courses
+    const coursesWithThemes = await Promise.all(
+      courseList.map(async (course) => {
+        const themes = await db
+          .select()
+          .from(courseThemes)
+          .where(eq(courseThemes.courseId, course.id));
+        return { ...course, themes };
+      })
+    );
+    
+    return coursesWithThemes;
   });
 
   fastify.get('/:id', async (request, reply) => {

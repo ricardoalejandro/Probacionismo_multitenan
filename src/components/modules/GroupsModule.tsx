@@ -41,7 +41,7 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
   const loadGroups = async () => {
     try {
       setLoading(true);
-      const data = await api.get(`/groups?branchId=${branchId}`);
+      const data = await api.getGroups(branchId);
       setGroups(data || []);
     } catch (error) {
       toast.error('Error al cargar grupos');
@@ -55,10 +55,10 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
     e.preventDefault();
     try {
       if (editingGroup) {
-        await api.put(`/groups/${editingGroup.id}`, { ...formData, branchId });
+        await api.updateGroup(editingGroup.id, { ...formData, branchId });
         toast.success('Grupo actualizado');
       } else {
-        await api.post('/groups', { ...formData, branchId });
+        await api.createGroup({ ...formData, branchId });
         toast.success('Grupo creado');
       }
       setIsDialogOpen(false);
@@ -83,7 +83,7 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
   const handleDelete = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este grupo?')) return;
     try {
-      await api.delete(`/groups/${id}`);
+      await api.deleteGroup(id);
       toast.success('Grupo eliminado');
       loadGroups();
     } catch (error) {

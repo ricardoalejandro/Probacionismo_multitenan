@@ -72,8 +72,8 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
   const loadStudents = async () => {
     try {
       setLoading(true);
-      const data = await api.get(`/students?branchId=${branchId}`);
-      setStudents(data.data || []);
+      const response = await api.getStudents({ branchId });
+      setStudents(response.data || []);
     } catch (error) {
       toast.error('Error al cargar probacionistas');
       setStudents([]);
@@ -86,13 +86,13 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
     e.preventDefault();
     try {
       if (editingStudent) {
-        await api.put(`/students/${editingStudent.id}`, {
+        await api.updateStudent(editingStudent.id, {
           ...formData,
           branchId,
         });
         toast.success('Probacionista actualizado');
       } else {
-        await api.post('/students', {
+        await api.createStudent({
           ...formData,
           branchId,
         });
@@ -131,7 +131,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
   const handleDelete = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este probacionista?')) return;
     try {
-      await api.delete(`/students/${id}`);
+      await api.deleteStudent(id);
       toast.success('Probacionista eliminado');
       loadStudents();
     } catch (error) {
@@ -254,7 +254,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
                       {student.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>S/. {student.monthlyFee.toFixed(2)}</TableCell>
+                  <TableCell>S/. {parseFloat(student.monthlyFee as any).toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button

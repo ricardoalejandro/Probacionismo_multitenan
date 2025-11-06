@@ -37,7 +37,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
   const loadCourses = async () => {
     try {
       setLoading(true);
-      const data = await api.get(`/courses?branchId=${branchId}`);
+      const data = await api.getCourses(branchId);
       setCourses(data || []);
     } catch (error) {
       toast.error('Error al cargar cursos');
@@ -56,10 +56,10 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
       }));
 
       if (editingCourse) {
-        await api.put(`/courses/${editingCourse.id}`, { ...formData, branchId, themes: themesData });
+        await api.updateCourse(editingCourse.id, { ...formData, branchId, themes: themesData });
         toast.success('Curso actualizado');
       } else {
-        await api.post('/courses', { ...formData, branchId, themes: themesData });
+        await api.createCourse({ ...formData, branchId, themes: themesData });
         toast.success('Curso creado');
       }
       setIsDialogOpen(false);
@@ -83,7 +83,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
   const handleDelete = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este curso?')) return;
     try {
-      await api.delete(`/courses/${id}`);
+      await api.deleteCourse(id);
       toast.success('Curso eliminado');
       loadCourses();
     } catch (error) {

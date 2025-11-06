@@ -7,7 +7,19 @@ export const instructorRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', async (request, reply) => {
     const { branchId } = request.query as { branchId: string };
     const instructorList = await db.select().from(instructors).where(eq(instructors.branchId, branchId));
-    return instructorList;
+    
+    // Fetch specialties for all instructors
+    const instructorsWithSpecialties = await Promise.all(
+      instructorList.map(async (instructor) => {
+        const specialties = await db
+          .select()
+          .from(instructorSpecialties)
+          .where(eq(instructorSpecialties.instructorId, instructor.id));
+        return { ...instructor, specialties };
+      })
+    );
+    
+    return instructorsWithSpecialties;
   });
 
   fastify.get('/:id', async (request, reply) => {

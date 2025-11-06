@@ -54,7 +54,7 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
   const loadInstructors = async () => {
     try {
       setLoading(true);
-      const data = await api.get(`/instructors?branchId=${branchId}`);
+      const data = await api.getInstructors(branchId);
       setInstructors(data || []);
     } catch (error) {
       toast.error('Error al cargar instructores');
@@ -70,10 +70,10 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
       const specialtiesData = formData.specialties.filter(s => s.trim()).map(specialty => ({ specialty }));
       
       if (editingInstructor) {
-        await api.put(`/instructors/${editingInstructor.id}`, { ...formData, branchId, specialties: specialtiesData });
+        await api.updateInstructor(editingInstructor.id, { ...formData, branchId, specialties: specialtiesData });
         toast.success('Instructor actualizado');
       } else {
-        await api.post('/instructors', { ...formData, branchId, specialties: specialtiesData });
+        await api.createInstructor({ ...formData, branchId, specialties: specialtiesData });
         toast.success('Instructor creado');
       }
       setIsDialogOpen(false);
@@ -107,7 +107,7 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
   const handleDelete = async (id: string) => {
     if (!confirm('¿Está seguro de eliminar este instructor?')) return;
     try {
-      await api.delete(`/instructors/${id}`);
+      await api.deleteInstructor(id);
       toast.success('Instructor eliminado');
       loadInstructors();
     } catch (error) {
@@ -231,7 +231,7 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
                   <TableCell>
                     <Badge variant={getStatusVariant(instructor.status)}>{instructor.status}</Badge>
                   </TableCell>
-                  <TableCell>S/. {instructor.hourlyRate.toFixed(2)}</TableCell>
+                  <TableCell>S/. {parseFloat(instructor.hourlyRate as any).toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(instructor)}>
