@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
@@ -16,6 +17,13 @@ interface Course {
   name: string;
   description: string;
   themes: Array<{ title: string; orderIndex: number }>;
+}
+
+interface PaginationData {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 export default function CoursesModule({ branchId }: { branchId: string }) {
@@ -30,17 +38,39 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
     themes: ['']
   });
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [pagination, setPagination] = useState<PaginationData>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+
   useEffect(() => {
     loadCourses();
   }, [branchId]);
 
+  useEffect(() => {
+    loadCourses();
+  }, [page, pageSize, search]);
+
   const loadCourses = async () => {
     try {
       setLoading(true);
-      const data = await api.getCourses(branchId);
-      setCourses(data || []);
+      const response = await api.getCourses(branchId, page, pageSize, search);
+      
+      if (response.data) {
+        setCourses(response.data);
+      } else {
+        setCourses([]);
+      }
+      
+      if (response.pagination) {
+        setPagination(response.pagination);
+      }
     } catch (error) {
-      toast.error('Error al cargar cursos');
+      toast.error('Error al cargar cursos', { duration: 1500 });
       setCourses([]);
     } finally {
       setLoading(false);
@@ -57,16 +87,16 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
 
       if (editingCourse) {
         await api.updateCourse(editingCourse.id, { ...formData, branchId, themes: themesData });
-        toast.success('Curso actualizado');
+        toast.success('Curso actualizado', { duration: 1500 });
       } else {
         await api.createCourse({ ...formData, branchId, themes: themesData });
-        toast.success('Curso creado');
+        toast.success('Curso creado', { duration: 1500 });
       }
       setIsDialogOpen(false);
       resetForm();
       loadCourses();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al guardar');
+      toast.error(error.response?.data?.message || 'Error al guardar', { duration: 1500 });
     }
   };
 
@@ -84,10 +114,10 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
     if (!confirm('¿Está seguro de eliminar este curso?')) return;
     try {
       await api.deleteCourse(id);
-      toast.success('Curso eliminado');
+      toast.success('Curso eliminado', { duration: 1500 });
       loadCourses();
     } catch (error) {
-      toast.error('Error al eliminar');
+      toast.error('Error al eliminar', { duration: 1500 });
     }
   };
 
@@ -109,10 +139,6 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
     newThemes[index] = value;
     setFormData({ ...formData, themes: newThemes });
   };
-
-  const filteredCourses = courses.filter((course) =>
-    course.name.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div className="space-y-6">
@@ -147,9 +173,10 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-9 mx-auto"></div>
           </div>
-        ) : filteredCourses.length === 0 ? (
+        ) : courses.length === 0 ? (
           <div className="p-8 text-center text-neutral-10">No se encontraron cursos</div>
         ) : (
+          <>
           <Table>
             <TableHeader>
               <TableRow>
@@ -160,7 +187,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCourses.map((course) => (
+              {courses.map((course) => (
                 <TableRow key={course.id}>
                   <TableCell className="font-medium">{course.name}</TableCell>
                   <TableCell className="max-w-md truncate">{course.description || '-'}</TableCell>
@@ -179,16 +206,24 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
               ))}
             </TableBody>
           </Table>
+          <DataTablePagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            pageSize={pagination.limit}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+          </>
         )}
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent onClose={() => setIsDialogOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>{editingCourse ? 'Editar' : 'Nuevo'} Curso</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <DialogBody>
+      <ResponsiveDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+        title={`${editingCourse ? 'Editar' : 'Nuevo'} Curso`}
+      >
+          <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
                 <div>
                   <Label>Nombre del Curso</Label>
@@ -231,18 +266,16 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
                   </div>
                 </div>
               </div>
-            </DialogBody>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" className="bg-gradient-to-r from-accent-9 to-accent-10">
-                {editingCourse ? 'Actualizar' : 'Crear'}
-              </Button>
-            </DialogFooter>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" className="bg-gradient-to-r from-accent-9 to-accent-10">
+                  {editingCourse ? 'Actualizar' : 'Crear'}
+                </Button>
+              </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveDialog>
     </div>
   );
 }

@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
@@ -23,6 +24,13 @@ interface Instructor {
   status: string;
   hourlyRate: number;
   specialties: Array<{ specialty: string }>;
+}
+
+interface PaginationData {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 export default function InstructorsModule({ branchId }: { branchId: string }) {
@@ -47,17 +55,39 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
     specialties: ['']
   });
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [pagination, setPagination] = useState<PaginationData>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+
   useEffect(() => {
     loadInstructors();
   }, [branchId]);
 
+  useEffect(() => {
+    loadInstructors();
+  }, [page, pageSize, search]);
+
   const loadInstructors = async () => {
     try {
       setLoading(true);
-      const data = await api.getInstructors(branchId);
-      setInstructors(data || []);
+      const response = await api.getInstructors(branchId, page, pageSize, search);
+      
+      if (response.data) {
+        setInstructors(response.data);
+      } else {
+        setInstructors([]);
+      }
+      
+      if (response.pagination) {
+        setPagination(response.pagination);
+      }
     } catch (error) {
-      toast.error('Error al cargar instructores');
+      toast.error('Error al cargar instructores', { duration: 1500 });
       setInstructors([]);
     } finally {
       setLoading(false);
@@ -71,16 +101,16 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
       
       if (editingInstructor) {
         await api.updateInstructor(editingInstructor.id, { ...formData, branchId, specialties: specialtiesData });
-        toast.success('Instructor actualizado');
+        toast.success('Instructor actualizado', { duration: 1500 });
       } else {
         await api.createInstructor({ ...formData, branchId, specialties: specialtiesData });
-        toast.success('Instructor creado');
+        toast.success('Instructor creado', { duration: 1500 });
       }
       setIsDialogOpen(false);
       resetForm();
       loadInstructors();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al guardar');
+      toast.error(error.response?.data?.message || 'Error al guardar', { duration: 1500 });
     }
   };
 
@@ -108,10 +138,10 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
     if (!confirm('¿Está seguro de eliminar este instructor?')) return;
     try {
       await api.deleteInstructor(id);
-      toast.success('Instructor eliminado');
+      toast.success('Instructor eliminado', { duration: 1500 });
       loadInstructors();
     } catch (error) {
-      toast.error('Error al eliminar');
+      toast.error('Error al eliminar', { duration: 1500 });
     }
   };
 
@@ -147,16 +177,6 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
     newSpecialties[index] = value;
     setFormData({ ...formData, specialties: newSpecialties });
   };
-
-  const filteredInstructors = instructors.filter((instructor) => {
-    const searchLower = search.toLowerCase();
-    return (
-      instructor.dni.toLowerCase().includes(searchLower) ||
-      instructor.firstName.toLowerCase().includes(searchLower) ||
-      instructor.paternalLastName.toLowerCase().includes(searchLower) ||
-      instructor.email?.toLowerCase().includes(searchLower)
-    );
-  });
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -200,9 +220,10 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-9 mx-auto"></div>
           </div>
-        ) : filteredInstructors.length === 0 ? (
+        ) : instructors.length === 0 ? (
           <div className="p-8 text-center text-neutral-10">No se encontraron instructores</div>
         ) : (
+          <>
           <Table>
             <TableHeader>
               <TableRow>
@@ -215,7 +236,7 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredInstructors.map((instructor) => (
+              {instructors.map((instructor) => (
                 <TableRow key={instructor.id}>
                   <TableCell className="font-medium">{instructor.dni}</TableCell>
                   <TableCell>
@@ -246,16 +267,24 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
               ))}
             </TableBody>
           </Table>
+          <DataTablePagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            pageSize={pagination.limit}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+          </>
         )}
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent onClose={() => setIsDialogOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>{editingInstructor ? 'Editar' : 'Nuevo'} Instructor</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <DialogBody>
+      <ResponsiveDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+        title={`${editingInstructor ? 'Editar' : 'Nuevo'} Instructor`}
+      >
+          <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>DNI</Label>
@@ -332,16 +361,14 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
                   </div>
                 </div>
               </div>
-            </DialogBody>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-              <Button type="submit" className="bg-gradient-to-r from-accent-9 to-accent-10">
-                {editingInstructor ? 'Actualizar' : 'Crear'}
-              </Button>
-            </DialogFooter>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                <Button type="submit" className="bg-gradient-to-r from-accent-9 to-accent-10">
+                  {editingInstructor ? 'Actualizar' : 'Crear'}
+                </Button>
+              </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveDialog>
     </div>
   );
 }

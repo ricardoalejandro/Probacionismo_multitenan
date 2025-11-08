@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -19,6 +20,13 @@ interface Group {
   description: string;
   startDate: string;
   frequency: string;
+}
+
+interface PaginationData {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 export default function GroupsModule({ branchId }: { branchId: string }) {
@@ -34,17 +42,39 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
     frequency: 'Semanal'
   });
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [pagination, setPagination] = useState<PaginationData>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+
   useEffect(() => {
     loadGroups();
   }, [branchId]);
 
+  useEffect(() => {
+    loadGroups();
+  }, [page, pageSize, search]);
+
   const loadGroups = async () => {
     try {
       setLoading(true);
-      const data = await api.getGroups(branchId);
-      setGroups(data || []);
+      const response = await api.getGroups(branchId, page, pageSize, search);
+      
+      if (response.data) {
+        setGroups(response.data);
+      } else {
+        setGroups([]);
+      }
+      
+      if (response.pagination) {
+        setPagination(response.pagination);
+      }
     } catch (error) {
-      toast.error('Error al cargar grupos');
+      toast.error('Error al cargar grupos', { duration: 1500 });
       setGroups([]);
     } finally {
       setLoading(false);
@@ -56,16 +86,16 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
     try {
       if (editingGroup) {
         await api.updateGroup(editingGroup.id, { ...formData, branchId });
-        toast.success('Grupo actualizado');
+        toast.success('Grupo actualizado', { duration: 1500 });
       } else {
         await api.createGroup({ ...formData, branchId });
-        toast.success('Grupo creado');
+        toast.success('Grupo creado', { duration: 1500 });
       }
       setIsDialogOpen(false);
       resetForm();
       loadGroups();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al guardar');
+      toast.error(error.response?.data?.message || 'Error al guardar', { duration: 1500 });
     }
   };
 
@@ -84,10 +114,10 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
     if (!confirm('¿Está seguro de eliminar este grupo?')) return;
     try {
       await api.deleteGroup(id);
-      toast.success('Grupo eliminado');
+      toast.success('Grupo eliminado', { duration: 1500 });
       loadGroups();
     } catch (error) {
-      toast.error('Error al eliminar');
+      toast.error('Error al eliminar', { duration: 1500 });
     }
   };
 
@@ -100,10 +130,6 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
       frequency: 'Semanal'
     });
   };
-
-  const filteredGroups = groups.filter((group) =>
-    group.name.toLowerCase().includes(search.toLowerCase())
-  );
 
   const getFrequencyVariant = (frequency: string) => {
     switch (frequency) {
@@ -147,9 +173,10 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-9 mx-auto"></div>
           </div>
-        ) : filteredGroups.length === 0 ? (
+        ) : groups.length === 0 ? (
           <div className="p-8 text-center text-neutral-10">No se encontraron grupos</div>
         ) : (
+          <>
           <Table>
             <TableHeader>
               <TableRow>
@@ -161,7 +188,7 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredGroups.map((group) => (
+              {groups.map((group) => (
                 <TableRow key={group.id}>
                   <TableCell className="font-medium">{group.name}</TableCell>
                   <TableCell className="max-w-md truncate">{group.description || '-'}</TableCell>
@@ -183,16 +210,24 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
               ))}
             </TableBody>
           </Table>
+          <DataTablePagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            pageSize={pagination.limit}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+          </>
         )}
       </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent onClose={() => setIsDialogOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>{editingGroup ? 'Editar' : 'Nuevo'} Grupo</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <DialogBody>
+      <ResponsiveDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+        title={`${editingGroup ? 'Editar' : 'Nuevo'} Grupo`}
+      >
+          <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
                 <div>
                   <Label>Nombre del Grupo</Label>
@@ -232,16 +267,14 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
                   </Select>
                 </div>
               </div>
-            </DialogBody>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-              <Button type="submit" className="bg-gradient-to-r from-accent-9 to-accent-10">
-                {editingGroup ? 'Actualizar' : 'Crear'}
-              </Button>
-            </DialogFooter>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                <Button type="submit" className="bg-gradient-to-r from-accent-9 to-accent-10">
+                  {editingGroup ? 'Actualizar' : 'Crear'}
+                </Button>
+              </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveDialog>
     </div>
   );
 }

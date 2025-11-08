@@ -7,14 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogBody,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableHeader,
@@ -26,7 +21,7 @@ import {
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
-interface Student {
+interface Student { 
   id: string;
   dni: string;
   firstName: string;
@@ -41,6 +36,12 @@ interface Student {
   documentType: string;
   admissionDate: string;
   admissionReason: string;
+}
+interface PaginationData {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 export default function StudentsModule({ branchId }: { branchId: string }) {
@@ -58,6 +59,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
     maternalLastName: '',
     email: '',
     phone: '',
+    address: '',
     birthDate: '',
     admissionDate: new Date().toISOString().split('T')[0],
     admissionReason: 'Nuevo',
@@ -65,44 +67,109 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
     monthlyFee: 0,
   });
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [pagination, setPagination] = useState<PaginationData>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
   useEffect(() => {
     loadStudents();
   }, [branchId]);
 
+  useEffect(() => {
+    loadStudents();
+  }, [page, pageSize, search]);
+
   const loadStudents = async () => {
     try {
       setLoading(true);
-      const response = await api.getStudents({ branchId });
-      setStudents(response.data || []);
+      const response = await api.getStudents({
+        branchId,
+        page,
+        limit: pageSize,
+        search,
+      });
+      
+      if (response.data) {
+        setStudents(response.data);
+      } else {
+        setStudents([]);
+      }
+      
+      if (response.pagination) {
+        setPagination(response.pagination);
+      }
     } catch (error) {
-      toast.error('Error al cargar probacionistas');
+      toast.error('Error al cargar probacionistas', { duration: 1500 });
       setStudents([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDniInput = (value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, '').slice(0, 8);
+    setFormData({ ...formData, dni: numericValue });
+    
+    if (formErrors.dni && numericValue.length === 8) {
+      setFormErrors({ ...formErrors, dni: '' });
+    }
+  };
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    // DNI: debe ser exactamente 8 dígitos
+    if (!/^\d{8}$/.test(formData.dni)) {
+      errors.dni = 'El DNI debe tener exactamente 8 dígitos';
+    }
+    
+    // Fechas: birthDate < admissionDate
+    if (formData.birthDate && formData.admissionDate) {
+      const birthDate = new Date(formData.birthDate);
+      const admissionDate = new Date(formData.admissionDate);
+      
+      if (birthDate >= admissionDate) {
+        errors.birthDate = 'La fecha de nacimiento debe ser anterior a la fecha de admisión';
+      }
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error('Por favor corrige los errores del formulario', { duration: 1500 });
+      return;
+    }
+    
     try {
       if (editingStudent) {
         await api.updateStudent(editingStudent.id, {
           ...formData,
           branchId,
         });
-        toast.success('Probacionista actualizado');
+        toast.success('Probacionista actualizado', { duration: 1500 });
       } else {
         await api.createStudent({
           ...formData,
           branchId,
         });
-        toast.success('Probacionista creado');
+        toast.success('Probacionista creado', { duration: 1500 });
       }
       setIsDialogOpen(false);
       resetForm();
       loadStudents();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al guardar');
+      toast.error(error.response?.data?.message || 'Error al guardar', { duration: 1500 });
     }
   };
 
@@ -117,6 +184,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
       maternalLastName: student.maternalLastName,
       email: student.email || '',
       phone: student.phone || '',
+      address: (student as any).address || '',
       birthDate: student.birthDate ? student.birthDate.split('T')[0] : '',
       admissionDate: student.admissionDate
         ? student.admissionDate.split('T')[0]
@@ -132,10 +200,10 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
     if (!confirm('¿Está seguro de eliminar este probacionista?')) return;
     try {
       await api.deleteStudent(id);
-      toast.success('Probacionista eliminado');
+      toast.success('Probacionista eliminado', { duration: 1500 });
       loadStudents();
     } catch (error) {
-      toast.error('Error al eliminar');
+      toast.error('Error al eliminar', { duration: 1500 });
     }
   };
 
@@ -150,24 +218,15 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
       maternalLastName: '',
       email: '',
       phone: '',
+      address: '',
       birthDate: '',
       admissionDate: new Date().toISOString().split('T')[0],
       admissionReason: 'Nuevo',
       status: 'Activo',
       monthlyFee: 0,
     });
+    setFormErrors({});
   };
-
-  const filteredStudents = students.filter((student) => {
-    const searchLower = search.toLowerCase();
-    return (
-      student.dni.toLowerCase().includes(searchLower) ||
-      student.firstName.toLowerCase().includes(searchLower) ||
-      student.paternalLastName.toLowerCase().includes(searchLower) ||
-      student.maternalLastName.toLowerCase().includes(searchLower) ||
-      student.email?.toLowerCase().includes(searchLower)
-    );
-  });
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -223,11 +282,12 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-9 mx-auto"></div>
           </div>
-        ) : filteredStudents.length === 0 ? (
+        ) : students.length === 0 ? (
           <div className="p-8 text-center text-neutral-10">
             No se encontraron probacionistas
           </div>
         ) : (
+          <>
           <Table>
             <TableHeader>
               <TableRow>
@@ -241,7 +301,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredStudents.map((student) => (
+              {students.map((student) => (
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{student.dni}</TableCell>
                   <TableCell>
@@ -278,19 +338,25 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
               ))}
             </TableBody>
           </Table>
+          <DataTablePagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            pageSize={pagination.limit}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+          </>
         )}
       </div>
 
       {/* Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent onClose={() => setIsDialogOpen(false)}>
-          <DialogHeader>
-            <DialogTitle>
-              {editingStudent ? 'Editar' : 'Nuevo'} Probacionista
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <DialogBody>
+      <ResponsiveDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+        title={`${editingStudent ? 'Editar' : 'Nuevo'} Probacionista`}
+      >
+          <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 {/* Document Type */}
                 <div>
@@ -310,14 +376,18 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
 
                 {/* DNI */}
                 <div>
-                  <Label>Número de Documento</Label>
+                  <Label>Número de Documento *</Label>
                   <Input
                     value={formData.dni}
-                    onChange={(e) =>
-                      setFormData({ ...formData, dni: e.target.value })
-                    }
+                    onChange={(e) => handleDniInput(e.target.value)}
+                    placeholder="12345678"
+                    maxLength={8}
                     required
+                    className={formErrors.dni ? 'border-red-500' : ''}
                   />
+                  {formErrors.dni && (
+                    <p className="text-sm text-red-500 mt-1">{formErrors.dni}</p>
+                  )}
                 </div>
 
                 {/* First Name */}
@@ -401,16 +471,36 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
                   />
                 </div>
 
+                {/* Address */}
+                <div className="col-span-2">
+                  <Label>Dirección</Label>
+                  <Textarea
+                    value={formData.address}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address: e.target.value })
+                    }
+                    placeholder="Dirección completa del probacionista"
+                    rows={3}
+                  />
+                </div>
+
                 {/* Birth Date */}
                 <div>
                   <Label>Fecha de Nacimiento</Label>
                   <Input
                     type="date"
                     value={formData.birthDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, birthDate: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setFormData({ ...formData, birthDate: e.target.value });
+                      if (formErrors.birthDate) {
+                        setFormErrors({ ...formErrors, birthDate: '' });
+                      }
+                    }}
+                    className={formErrors.birthDate ? 'border-red-500' : ''}
                   />
+                  {formErrors.birthDate && (
+                    <p className="text-sm text-red-500 mt-1">{formErrors.birthDate}</p>
+                  )}
                 </div>
 
                 {/* Admission Date */}
@@ -479,22 +569,20 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
                   />
                 </div>
               </div>
-            </DialogBody>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" className="bg-gradient-to-r from-accent-9 to-accent-10">
-                {editingStudent ? 'Actualizar' : 'Crear'}
-              </Button>
-            </DialogFooter>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" className="bg-gradient-to-r from-accent-9 to-accent-10">
+                  {editingStudent ? 'Actualizar' : 'Crear'}
+                </Button>
+              </div>
           </form>
-        </DialogContent>
-      </Dialog>
+      </ResponsiveDialog>
     </div>
   );
 }
