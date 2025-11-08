@@ -5,6 +5,9 @@ import { Providers } from './providers';
 export const metadata: Metadata = {
   title: 'Sistema de Gestión Académica Multi-Tenant',
   description: 'Sistema completo de gestión académica para instituciones educativas',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
