@@ -37,10 +37,18 @@ export default function AdminPage() {
 
   const loadBranches = async () => {
     try {
-      const data = await api.getBranches();
-      setBranches(data);
+      const response = await api.getBranches();
+      // Manejar tanto respuesta con paginación como sin ella
+      if (Array.isArray(response)) {
+        setBranches(response);
+      } else if (response.data && Array.isArray(response.data)) {
+        setBranches(response.data);
+      } else {
+        setBranches([]);
+      }
     } catch (error) {
       toast.error('Error al cargar sucursales');
+      setBranches([]);
     } finally {
       setLoading(false);
     }
@@ -50,18 +58,21 @@ export default function AdminPage() {
     e.preventDefault();
     try {
       if (editingId) {
+        // Al editar, enviamos todos los datos
         await api.updateBranch(editingId, formData);
-        toast.success('Sucursal actualizada');
+        toast.success('Sucursal actualizada', { duration: 1500 });
       } else {
-        await api.createBranch(formData);
-        toast.success('Sucursal creada');
+        // Al crear, NO enviamos el código (se genera automáticamente)
+        const { code, ...dataWithoutCode } = formData;
+        await api.createBranch(dataWithoutCode);
+        toast.success('Sucursal creada', { duration: 1500 });
       }
       setShowForm(false);
       setEditingId(null);
       setFormData({ name: '', code: '', description: '', status: 'active' });
       loadBranches();
-    } catch (error) {
-      toast.error('Error al guardar sucursal');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Error al guardar sucursal', { duration: 1500 });
     }
   };
 
@@ -138,15 +149,17 @@ export default function AdminPage() {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="code">Código</Label>
-                    <Input
-                      id="code"
-                      value={formData.code}
-                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                      required
-                    />
-                  </div>
+                  {editingId && (
+                    <div className="space-y-2">
+                      <Label htmlFor="code">Código (Generado automáticamente)</Label>
+                      <Input
+                        id="code"
+                        value={formData.code}
+                        disabled
+                        className="bg-neutral-3 cursor-not-allowed"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Descripción</Label>

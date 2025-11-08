@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Button } from './button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
+import { Select } from './select';
 
 interface DataTablePaginationProps {
   currentPage: number;
@@ -29,28 +29,24 @@ export function DataTablePagination({
     <div className="flex items-center justify-between px-2 py-4">
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2">
-          <p className="text-sm text-muted-foreground">Filas por página</p>
+          <p className="text-sm text-neutral-10">Filas por página</p>
           <Select
             value={pageSize.toString()}
-            onValueChange={(value) => {
-              onPageSizeChange(Number(value));
-              onPageChange(1); // Reset to first page when changing page size
+            onChange={(e) => {
+              onPageSizeChange(Number(e.target.value));
+              onPageChange(1);
             }}
+            className="h-8 w-[70px]"
           >
-            <SelectTrigger className="h-8 w-[70px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[10, 25, 50, 100].map((size) => (
-                <SelectItem key={size} value={size.toString()}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
+            {[10, 25, 50, 100].map((size) => (
+              <option key={size} value={size.toString()}>
+                {size}
+              </option>
+            ))}
           </Select>
         </div>
 
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-neutral-10">
           Mostrando {startItem} - {endItem} de {totalItems} resultados
         </div>
       </div>
