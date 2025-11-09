@@ -1,43 +1,38 @@
 # Backend Dockerfile for Fastify API
-# Multi-stage build for optimal image size
+# Using full node image for easier builds
 
-# Stage 1: Dependencies
-FROM node:20-alpine AS deps
+# Stage 1: Builder
+FROM node:20 AS builder
 WORKDIR /app
-
-# Install git (required for some npm packages)
-RUN apk add --no-cache git python3 make g++
 
 # Copy package files
 COPY package.json ./
 
-# Install ALL dependencies
-RUN npm install --verbose
+# Install dependencies
+RUN npm install
 
-# Stage 2: Builder
-FROM node:20-alpine AS builder
-WORKDIR /app
-
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
+# Copy source code
 COPY . ./
 
 # Build TypeScript
 RUN npm run build
 
-# Stage 3: Runner
-FROM node:20-alpine AS runner
+# Stage 2: Runner
+FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Install runtime dependencies
-RUN apk add --no-cache wget netcat-openbsd git python3 make g++
+# Install wget and netcat for health checks
+RUN apt-get update && apt-get install -y \
+    wget \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package file
 COPY package.json ./
 
-# Install production dependencies and required tools
+# Install production dependencies and tools
 RUN npm install --omit=dev && \
     npm install -g drizzle-kit tsx
 
@@ -51,8 +46,8 @@ COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 fastify
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 -g nodejs fastify
 
 # Set correct permissions
 RUN chown -R fastify:nodejs /app
