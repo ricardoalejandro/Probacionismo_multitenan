@@ -56,7 +56,7 @@ const enrollSchema = z.object({
 });
 
 const statusChangeSchema = z.object({
-  status: z.enum(['closed', 'finished', 'eliminado', 'merged']),
+  status: z.enum(['active', 'closed', 'finished', 'eliminado', 'merged']),
   observation: z.string().min(5),
   targetGroupId: z.string().uuid().optional(),
   transferStudentIds: z.array(z.string().uuid()).optional(),
@@ -387,6 +387,23 @@ export const groupRoutes: FastifyPluginAsync = async (fastify) => {
       const validatedData = enrollSchema.parse(request.body);
       const { studentIds, enrollmentDate } = validatedData;
 
+      // Validar que el grupo esté activo
+      const [group] = await db.select({ status: classGroups.status })
+        .from(classGroups)
+        .where(eq(classGroups.id, id))
+        .limit(1);
+
+      if (!group) {
+        return reply.code(404).send({ error: 'Grupo no encontrado' });
+      }
+
+      if (group.status !== 'active') {
+        return reply.code(400).send({ 
+          error: 'Solo se pueden inscribir estudiantes a grupos activos',
+          currentStatus: group.status 
+        });
+      }
+
       const activeEnrollments = await db
         .select({
           studentId: groupEnrollments.studentId,
@@ -522,9 +539,17 @@ export const groupRoutes: FastifyPluginAsync = async (fastify) => {
           .where(and(eq(groupEnrollments.groupId, id), inArray(groupEnrollments.studentId, transferStudentIds)));
       }
 
+      const transactionTypeMap: Record<string, string> = {
+        active: 'Activación',
+        closed: 'Cierre',
+        finished: 'Finalización',
+        eliminado: 'Baja',
+        merged: 'Fusión',
+      };
+
       await db.insert(groupTransactions).values({
         groupId: id,
-        transactionType: status === 'closed' ? 'Cierre' : status === 'finished' ? 'Finalizado' : status === 'eliminado' ? 'Baja' : 'Fusionado',
+        transactionType: transactionTypeMap[status] || 'Cambio de Estado',
         description: `Grupo cambió a estado: ${status}`,
         observation,
         targetGroupId: targetGroupId || null,

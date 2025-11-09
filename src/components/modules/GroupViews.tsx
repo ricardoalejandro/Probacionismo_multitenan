@@ -79,7 +79,13 @@ export function GroupCardsView({ groups, onEdit, onViewStudents, onEnroll, onCha
             <Button variant="ghost" size="sm" onClick={() => onViewStudents(group)} title="Ver estudiantes">
               <Users className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => onEnroll(group)} title="Inscribir estudiantes">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => onEnroll(group)} 
+              title={group.status === 'active' ? "Inscribir estudiantes" : "Solo disponible para grupos activos"}
+              disabled={group.status !== 'active'}
+            >
               <UserPlus className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={() => onChangeStatus(group)} title="Cambiar estado">
@@ -96,6 +102,7 @@ export function GroupCardsView({ groups, onEdit, onViewStudents, onEnroll, onCha
       ))}
     </div>
   );
+}
 
 // Vista Compacta
 export function GroupCompactView({ groups, onEdit, onViewStudents, onEnroll, onChangeStatus, onViewTransactions, onDelete }: ViewProps) {
@@ -130,7 +137,13 @@ export function GroupCompactView({ groups, onEdit, onViewStudents, onEnroll, onC
             <Button variant="ghost" size="sm" onClick={() => onViewStudents(group)} title="Ver estudiantes">
               <Users className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => onEnroll(group)} title="Inscribir">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => onEnroll(group)} 
+              title={group.status === 'active' ? "Inscribir" : "Solo grupos activos"}
+              disabled={group.status !== 'active'}
+            >
               <UserPlus className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={() => onChangeStatus(group)} title="Cambiar estado">
@@ -183,7 +196,13 @@ export function GroupListView({ groups, onEdit, onViewStudents, onEnroll, onChan
                 <Button variant="ghost" size="sm" onClick={() => onViewStudents(group)} title="Ver estudiantes">
                   <Users className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => onEnroll(group)} title="Inscribir estudiantes">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => onEnroll(group)} 
+                  title={group.status === 'active' ? "Inscribir estudiantes" : "Solo disponible para grupos activos"}
+                  disabled={group.status !== 'active'}
+                >
                   <UserPlus className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => onChangeStatus(group)} title="Cambiar estado">

@@ -306,6 +306,7 @@ export default function GroupsModule({ branchId }: { branchId: string }) {
         open={isStatusOpen}
         onClose={() => setIsStatusOpen(false)}
         group={selectedGroup}
+        branchId={branchId}
         onStatusChanged={() => {
           loadGroups();
           toast.success('Estado actualizado correctamente', { duration: 1500 });
