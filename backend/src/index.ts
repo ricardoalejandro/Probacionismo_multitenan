@@ -6,6 +6,7 @@ import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import multipart from '@fastify/multipart';
 import { createClient } from 'redis';
 import { authRoutes } from './routes/auth';
 import { branchRoutes } from './routes/branches';
@@ -68,6 +69,13 @@ async function start() {
   await fastify.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
+  });
+
+  // Register multipart for file uploads
+  await fastify.register(multipart, {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB
+    },
   });
 
   // Swagger documentation

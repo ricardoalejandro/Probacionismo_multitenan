@@ -5,8 +5,8 @@ import { eq, and, ilike, sql, desc } from 'drizzle-orm';
 import { redisClient } from '../index';
 import { z } from 'zod';
 
-// Validation schema
-const studentSchema = z.object({
+// Base validation schema without refinement
+const studentBaseSchema = z.object({
   branchId: z.string().uuid(),
   documentType: z.enum(['DNI', 'CNE', 'Pasaporte']),
   dni: z.string().regex(/^\d{8}$/, 'DNI debe tener exactamente 8 dígitos numéricos'),
@@ -28,7 +28,10 @@ const studentSchema = z.object({
   department: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
   province: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
   district: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
-}).refine(
+});
+
+// Schema for creating with refinement
+const studentCreateSchema = studentBaseSchema.refine(
   (data) => {
     if (!data.birthDate) return true;
     return new Date(data.birthDate) < new Date(data.admissionDate);
@@ -38,6 +41,9 @@ const studentSchema = z.object({
     path: ['birthDate'],
   }
 );
+
+// Schema for updating (partial)
+const studentUpdateSchema = studentBaseSchema.partial();
 
 export const studentRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all students with pagination and search
@@ -105,7 +111,29 @@ export const studentRoutes: FastifyPluginAsync = async (fastify) => {
   // Create student with validation
   fastify.post('/', async (request, reply) => {
     try {
-      const validatedData = studentSchema.parse(request.body);
+      const validatedData = studentCreateSchema.parse(request.body);
+      
+      // Check for duplicate (documentType, dni)
+      const [existing] = await db
+        .select()
+        .from(students)
+        .where(
+          and(
+            eq(students.documentType, validatedData.documentType),
+            eq(students.dni, validatedData.dni),
+            sql`${students.status} != 'Eliminado'`
+          )
+        )
+        .limit(1);
+      
+      if (existing) {
+        return reply.code(409).send({ 
+          error: 'Ya existe un probacionista con este tipo y número de documento',
+          field: 'dni',
+          type: 'validation'
+        });
+      }
+      
       const [student] = await db.insert(students).values(validatedData as any).returning();
       
       // Invalidate cache
@@ -130,7 +158,39 @@ export const studentRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.put('/:id', async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const validatedData = studentSchema.partial().parse(request.body);
+      const validatedData = studentUpdateSchema.parse(request.body);
+      
+      // Check for duplicate (documentType, dni) if these fields are being updated
+      if (validatedData.documentType || validatedData.dni) {
+        const currentStudent = await db.select().from(students).where(eq(students.id, id)).limit(1);
+        if (currentStudent.length === 0) {
+          return reply.code(404).send({ error: 'Student not found' });
+        }
+        
+        const docType = validatedData.documentType || currentStudent[0].documentType;
+        const dniValue = validatedData.dni || currentStudent[0].dni;
+        
+        const [existing] = await db
+          .select()
+          .from(students)
+          .where(
+            and(
+              eq(students.documentType, docType),
+              eq(students.dni, dniValue),
+              sql`${students.id} != ${id}`,
+              sql`${students.status} != 'Eliminado'`
+            )
+          )
+          .limit(1);
+        
+        if (existing) {
+          return reply.code(409).send({ 
+            error: 'Ya existe otro probacionista con este tipo y número de documento',
+            field: 'dni',
+            type: 'validation'
+          });
+        }
+      }
       
       const [student] = await db
         .update(students)

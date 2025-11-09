@@ -78,6 +78,17 @@ export const courseThemes = pgTable('course_themes', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// New table: course_topics (replaces course_themes gradually)
+export const courseTopics = pgTable('course_topics', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  courseId: uuid('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  orderIndex: integer('order_index').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 export const instructors = pgTable('instructors', {
   id: uuid('id').primaryKey().defaultRandom(),
   branchId: uuid('branch_id').notNull().references(() => branches.id, { onDelete: 'cascade' }),

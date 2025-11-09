@@ -26,16 +26,17 @@ interface Student {
   dni: string;
   firstName: string;
   paternalLastName: string;
-  maternalLastName: string;
-  email: string;
-  phone: string;
+  maternalLastName: string | null;
+  email: string | null;
+  phone: string | null;
   gender: string;
-  birthDate: string;
+  birthDate: string | null;
   status: string;
   monthlyFee: number;
   documentType: string;
   admissionDate: string;
   admissionReason: string;
+  address?: string | null;
 }
 interface PaginationData {
   page: number;
@@ -169,29 +170,37 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
       resetForm();
       loadStudents();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al guardar', { duration: 1500 });
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Error al guardar';
+      const errorType = error.response?.data?.type;
+      
+      // Si es una validación de negocio (409), mostrar como advertencia
+      if (error.response?.status === 409 || errorType === 'validation') {
+        toast.warning(errorMessage, { duration: 3000 });
+      } else {
+        toast.error(errorMessage, { duration: 2500 });
+      }
     }
   };
 
   const handleEdit = (student: Student) => {
     setEditingStudent(student);
     setFormData({
-      documentType: student.documentType,
-      dni: student.dni,
-      gender: student.gender,
-      firstName: student.firstName,
-      paternalLastName: student.paternalLastName,
-      maternalLastName: student.maternalLastName,
+      documentType: student.documentType || 'DNI',
+      dni: student.dni || '',
+      gender: student.gender || 'Masculino',
+      firstName: student.firstName || '',
+      paternalLastName: student.paternalLastName || '',
+      maternalLastName: student.maternalLastName || '',
       email: student.email || '',
       phone: student.phone || '',
-      address: (student as any).address || '',
+      address: student.address || '',
       birthDate: student.birthDate ? student.birthDate.split('T')[0] : '',
       admissionDate: student.admissionDate
         ? student.admissionDate.split('T')[0]
-        : '',
-      admissionReason: student.admissionReason,
-      status: student.status,
-      monthlyFee: student.monthlyFee,
+        : new Date().toISOString().split('T')[0],
+      admissionReason: student.admissionReason || 'Nuevo',
+      status: student.status || 'Activo',
+      monthlyFee: student.monthlyFee || 0,
     });
     setIsDialogOpen(true);
   };

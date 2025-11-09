@@ -11,12 +11,21 @@ import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import CourseTopicsEditor from './CourseTopicsEditor';
+
+interface CourseTopic {
+  id?: string;
+  orderIndex: number;
+  title: string;
+  description: string;
+  _status?: 'new' | 'modified' | 'deleted';
+}
 
 interface Course {
   id: string;
   name: string;
   description: string;
-  themes: Array<{ title: string; orderIndex: number }>;
+  themes: CourseTopic[];
 }
 
 interface PaginationData {
@@ -32,10 +41,14 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    themes: CourseTopic[];
+  }>({
     name: '',
     description: '',
-    themes: ['']
+    themes: []
   });
 
   const [page, setPage] = useState(1);
@@ -80,16 +93,29 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const themesData = formData.themes.filter(t => t.trim()).map((title, idx) => ({
-        title,
-        orderIndex: idx + 1
-      }));
+      const themesData = formData.themes
+        .filter(t => t.title.trim())
+        .map((theme, idx) => ({
+          title: theme.title,
+          description: theme.description || '',
+          orderIndex: idx + 1
+        }));
 
       if (editingCourse) {
-        await api.updateCourse(editingCourse.id, { ...formData, branchId, themes: themesData });
+        await api.updateCourse(editingCourse.id, { 
+          name: formData.name,
+          description: formData.description,
+          branchId, 
+          themes: themesData 
+        });
         toast.success('Curso actualizado', { duration: 1500 });
       } else {
-        await api.createCourse({ ...formData, branchId, themes: themesData });
+        await api.createCourse({ 
+          name: formData.name,
+          description: formData.description,
+          branchId, 
+          themes: themesData 
+        });
         toast.success('Curso creado', { duration: 1500 });
       }
       setIsDialogOpen(false);
@@ -105,7 +131,14 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
     setFormData({
       name: course.name,
       description: course.description || '',
-      themes: course.themes.length > 0 ? course.themes.map(t => t.title) : ['']
+      themes: course.themes.length > 0 
+        ? course.themes.map((t, idx) => ({
+            id: t.id,
+            orderIndex: t.orderIndex || idx + 1,
+            title: t.title,
+            description: t.description || '',
+          }))
+        : []
     });
     setIsDialogOpen(true);
   };
@@ -123,21 +156,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
 
   const resetForm = () => {
     setEditingCourse(null);
-    setFormData({ name: '', description: '', themes: [''] });
-  };
-
-  const addTheme = () => {
-    setFormData({ ...formData, themes: [...formData.themes, ''] });
-  };
-
-  const removeTheme = (index: number) => {
-    setFormData({ ...formData, themes: formData.themes.filter((_, i) => i !== index) });
-  };
-
-  const updateTheme = (index: number, value: string) => {
-    const newThemes = [...formData.themes];
-    newThemes[index] = value;
-    setFormData({ ...formData, themes: newThemes });
+    setFormData({ name: '', description: '', themes: [] });
   };
 
   return (
@@ -241,30 +260,13 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
                     rows={3}
                   />
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Temas</Label>
-                    <Button type="button" size="sm" variant="outline" onClick={addTheme}>
-                      <Plus className="h-4 w-4 mr-1" /> Agregar Tema
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {formData.themes.map((theme, index) => (
-                      <div key={index} className="flex gap-2">
-                        <Input
-                          value={theme}
-                          onChange={(e) => updateTheme(index, e.target.value)}
-                          placeholder={`Tema ${index + 1}`}
-                        />
-                        {formData.themes.length > 1 && (
-                          <Button type="button" variant="ghost" size="sm" onClick={() => removeTheme(index)}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                
+                {/* Course Topics Editor with Import/Export */}
+                <CourseTopicsEditor
+                  courseId={editingCourse?.id}
+                  initialTopics={formData.themes}
+                  onChange={(topics) => setFormData({ ...formData, themes: topics })}
+                />
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>

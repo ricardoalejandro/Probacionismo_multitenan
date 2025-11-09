@@ -5,6 +5,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 class ApiClient {
   private client: AxiosInstance;
 
+  // Expose axios instance for direct use (e.g., file downloads)
+  get axiosInstance(): AxiosInstance {
+    return this.client;
+  }
+
   constructor() {
     this.client = axios.create({
       baseURL: API_URL,
@@ -31,6 +36,16 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError) => {
+        // Suprimir logs en consola para validaciones de negocio (409 Conflict)
+        if (error.response?.status === 409) {
+          // Es una validación esperada, no un error del sistema
+          // Solo rechazar silenciosamente sin loggear en consola
+          const silentError = new Error('Validation error');
+          (silentError as any).response = error.response;
+          (silentError as any).config = error.config;
+          return Promise.reject(silentError);
+        }
+        
         if (error.response?.status === 401) {
           if (typeof window !== 'undefined') {
             localStorage.removeItem('auth_token');
@@ -96,8 +111,10 @@ class ApiClient {
   }
 
   // Courses
-  async getCourses(branchId: string) {
-    const response = await this.client.get('/courses', { params: { branchId } });
+  async getCourses(branchId: string, page?: number, limit?: number, search?: string) {
+    const response = await this.client.get('/courses', { 
+      params: { branchId, page, limit, search } 
+    });
     return response.data;
   }
 
@@ -117,8 +134,10 @@ class ApiClient {
   }
 
   // Instructors
-  async getInstructors(branchId: string) {
-    const response = await this.client.get('/instructors', { params: { branchId } });
+  async getInstructors(branchId: string, page?: number, limit?: number, search?: string) {
+    const response = await this.client.get('/instructors', { 
+      params: { branchId, page, limit, search } 
+    });
     return response.data;
   }
 
@@ -138,8 +157,10 @@ class ApiClient {
   }
 
   // Groups
-  async getGroups(branchId: string) {
-    const response = await this.client.get('/groups', { params: { branchId } });
+  async getGroups(branchId: string, page?: number, limit?: number, search?: string) {
+    const response = await this.client.get('/groups', { 
+      params: { branchId, page, limit, search } 
+    });
     return response.data;
   }
 

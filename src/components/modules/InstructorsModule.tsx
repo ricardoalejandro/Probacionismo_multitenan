@@ -15,14 +15,17 @@ import { api } from '@/lib/api';
 
 interface Instructor {
   id: string;
+  documentType?: string;
   dni: string;
+  gender?: string;
   firstName: string;
   paternalLastName: string;
-  maternalLastName: string;
-  email: string;
-  phone: string;
+  maternalLastName: string | null;
+  email: string | null;
+  phone: string | null;
+  birthDate?: string | null;
+  hireDate?: string;
   status: string;
-  hourlyRate: number;
   specialties: Array<{ specialty: string }>;
 }
 
@@ -51,7 +54,6 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
     birthDate: '',
     hireDate: new Date().toISOString().split('T')[0],
     status: 'Activo',
-    hourlyRate: 0,
     specialties: ['']
   });
 
@@ -97,38 +99,46 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const specialtiesData = formData.specialties.filter(s => s.trim()).map(specialty => ({ specialty }));
+      // Filtrar especialidades vacías y enviar como array de strings
+      const specialtiesArray = formData.specialties.filter(s => s.trim());
       
       if (editingInstructor) {
-        await api.updateInstructor(editingInstructor.id, { ...formData, branchId, specialties: specialtiesData });
+        await api.updateInstructor(editingInstructor.id, { ...formData, branchId, specialties: specialtiesArray });
         toast.success('Instructor actualizado', { duration: 1500 });
       } else {
-        await api.createInstructor({ ...formData, branchId, specialties: specialtiesData });
+        await api.createInstructor({ ...formData, branchId, specialties: specialtiesArray });
         toast.success('Instructor creado', { duration: 1500 });
       }
       setIsDialogOpen(false);
       resetForm();
       loadInstructors();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al guardar', { duration: 1500 });
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Error al guardar';
+      const errorType = error.response?.data?.type;
+      
+      // Si es una validación de negocio (409), mostrar como advertencia
+      if (error.response?.status === 409 || errorType === 'validation') {
+        toast.warning(errorMessage, { duration: 3000 });
+      } else {
+        toast.error(errorMessage, { duration: 2500 });
+      }
     }
   };
 
   const handleEdit = (instructor: Instructor) => {
     setEditingInstructor(instructor);
     setFormData({
-      documentType: 'DNI',
-      dni: instructor.dni,
-      gender: 'Masculino',
-      firstName: instructor.firstName,
-      paternalLastName: instructor.paternalLastName,
-      maternalLastName: instructor.maternalLastName,
+      documentType: instructor.documentType || 'DNI',
+      dni: instructor.dni || '',
+      gender: instructor.gender || 'Masculino',
+      firstName: instructor.firstName || '',
+      paternalLastName: instructor.paternalLastName || '',
+      maternalLastName: instructor.maternalLastName || '',
       email: instructor.email || '',
       phone: instructor.phone || '',
-      birthDate: '',
-      hireDate: new Date().toISOString().split('T')[0],
-      status: instructor.status,
-      hourlyRate: instructor.hourlyRate,
+      birthDate: instructor.birthDate ? instructor.birthDate.split('T')[0] : '',
+      hireDate: instructor.hireDate ? instructor.hireDate.split('T')[0] : new Date().toISOString().split('T')[0],
+      status: instructor.status || 'Activo',
       specialties: instructor.specialties.length > 0 ? instructor.specialties.map(s => s.specialty) : ['']
     });
     setIsDialogOpen(true);
@@ -159,7 +169,6 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
       birthDate: '',
       hireDate: new Date().toISOString().split('T')[0],
       status: 'Activo',
-      hourlyRate: 0,
       specialties: ['']
     });
   };
@@ -194,7 +203,7 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
           <h1 className="text-3xl font-bold text-neutral-11">
             Instructores
           </h1>
-          <p className="text-neutral-9 mt-1">Gestión de instructores y especialidades</p>
+          <p className="text-neutral-9 mt-1">Gestión de instructores y capacitaciones</p>
         </div>
         <Button
           onClick={() => { resetForm(); setIsDialogOpen(true); }}
@@ -229,9 +238,8 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
               <TableRow>
                 <TableHead>DNI</TableHead>
                 <TableHead>Nombre Completo</TableHead>
-                <TableHead>Especialidades</TableHead>
+                <TableHead>Capacitado en</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead>Tarifa/Hora</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -252,7 +260,6 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
                   <TableCell>
                     <Badge variant={getStatusVariant(instructor.status)}>{instructor.status}</Badge>
                   </TableCell>
-                  <TableCell>S/. {parseFloat(instructor.hourlyRate as any).toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleEdit(instructor)}>
@@ -327,18 +334,8 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
                   </Select>
                 </div>
                 <div className="col-span-2">
-                  <Label>Tarifa por Hora (S/.)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.hourlyRate}
-                    onChange={(e) => setFormData({ ...formData, hourlyRate: parseFloat(e.target.value) || 0 })}
-                    required
-                  />
-                </div>
-                <div className="col-span-2">
                   <div className="flex items-center justify-between mb-2">
-                    <Label>Especialidades</Label>
+                    <Label>Capacitado en</Label>
                     <Button type="button" size="sm" variant="outline" onClick={addSpecialty}>
                       <Plus className="h-4 w-4 mr-1" /> Agregar
                     </Button>
@@ -349,7 +346,7 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
                         <Input
                           value={specialty}
                           onChange={(e) => updateSpecialty(index, e.target.value)}
-                          placeholder={`Especialidad ${index + 1}`}
+                          placeholder={`Capacitación ${index + 1}`}
                         />
                         {formData.specialties.length > 1 && (
                           <Button type="button" variant="ghost" size="sm" onClick={() => removeSpecialty(index)}>
