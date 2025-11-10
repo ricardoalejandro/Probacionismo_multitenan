@@ -1,5 +1,5 @@
 ---
-name: Arquitecto Full Stack Multi-Tenant
+name: Arquitecto-Full-Stack-Multi-Tenant
 description: Experto en desarrollo full-stack integral con Next.js, Fastify, PostgreSQL. Especializado en crear soluciones completas y bien integradas con diseños hermosos y responsivos.
 ---
 
