@@ -68,6 +68,26 @@ class ApiClient {
     return response.data;
   }
 
+  async forgotPassword(email: string) {
+    const response = await this.client.post('/auth/forgot-password', { email });
+    return response.data;
+  }
+
+  async verifyResetToken(token: string) {
+    const response = await this.client.get(`/auth/verify-token/${token}`);
+    return response.data;
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const response = await this.client.post(`/auth/reset-password/${token}`, { newPassword });
+    return response.data;
+  }
+
+  async requestPasswordChange() {
+    const response = await this.client.post('/auth/request-password-change');
+    return response.data;
+  }
+
   // Branches
   async getBranches() {
     const response = await this.client.get('/branches');
@@ -281,6 +301,111 @@ class ApiClient {
 
   async getGroupTransactions(groupId: string) {
     const response = await this.client.get(`/groups/${groupId}/transactions`);
+    return response.data;
+  }
+
+  // Users Management
+  async getUsers(params?: { page?: number; limit?: number; search?: string }) {
+    const response = await this.client.get('/users', { params });
+    return response.data;
+  }
+
+  async createUser(data: any) {
+    const response = await this.client.post('/users', data);
+    return response.data;
+  }
+
+  async updateUser(id: string, data: any) {
+    const response = await this.client.put(`/users/${id}`, data);
+    return response.data;
+  }
+
+  async deleteUser(id: string) {
+    const response = await this.client.delete(`/users/${id}`);
+    return response.data;
+  }
+
+  async getUserBranches(id: string) {
+    const response = await this.client.get(`/users/${id}/branches`);
+    return response.data;
+  }
+
+  // Roles Management
+  async getRoles() {
+    const response = await this.client.get('/roles');
+    return response.data;
+  }
+
+  async createRole(data: any) {
+    const response = await this.client.post('/roles', data);
+    return response.data;
+  }
+
+  async updateRole(id: string, data: any) {
+    const response = await this.client.put(`/roles/${id}`, data);
+    return response.data;
+  }
+
+  async deleteRole(id: string) {
+    const response = await this.client.delete(`/roles/${id}`);
+    return response.data;
+  }
+
+  async getRolePermissions(id: string) {
+    const response = await this.client.get(`/roles/${id}/permissions`);
+    return response.data;
+  }
+
+  // System Config
+  async getSMTPConfig() {
+    const response = await this.client.get('/system/config/smtp');
+    return response.data;
+  }
+
+  async saveSMTPConfig(data: any) {
+    const response = await this.client.post('/system/config/smtp', data);
+    return response.data;
+  }
+
+  async testSMTPConnection() {
+    const response = await this.client.post('/system/config/smtp/test');
+    return response.data;
+  }
+
+  // Philosophical Counseling
+  async getCounselings(studentId: string) {
+    const response = await this.client.get(`/counseling/${studentId}`);
+    return response.data;
+  }
+
+  async createCounseling(studentId: string, data: any) {
+    const response = await this.client.post(`/counseling/${studentId}`, data);
+    return response.data;
+  }
+
+  async updateCounseling(studentId: string, counselingId: string, data: any) {
+    const response = await this.client.put(`/counseling/${studentId}/${counselingId}`, data);
+    return response.data;
+  }
+
+  async deleteCounseling(studentId: string, counselingId: string) {
+    const response = await this.client.delete(`/counseling/${studentId}/${counselingId}`);
+    return response.data;
+  }
+
+  async getCounseling(studentId: string, counselingId: string) {
+    const response = await this.client.get(`/counseling/${studentId}/${counselingId}`);
+    return response.data;
+  }
+
+  // Profile
+  async getProfile() {
+    const response = await this.client.get('/profile/me');
+    return response.data;
+  }
+
+  async updateProfile(data: any) {
+    const response = await this.client.put('/profile/me', data);
     return response.data;
   }
 }

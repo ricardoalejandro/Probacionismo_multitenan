@@ -24,6 +24,7 @@ export default function LoginPage() {
       const data = await api.login(username, password);
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('user_branches', JSON.stringify(data.branches || []));
       toast.success('¡Bienvenido!');
       router.push('/dashboard');
     } catch (error: any) {
