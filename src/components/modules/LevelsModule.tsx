@@ -328,8 +328,8 @@ export default function LevelsModule() {
             <DialogTitle>Confirmar eliminación</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <p className="text-muted-foreground">">
-              ¿Está seguro de eliminar el nivel "{deletingLevel?.name}" ({deletingLevel?.code})?
+            <p className="text-muted-foreground">
+              ¿Está seguro de eliminar el nivel &quot;{deletingLevel?.name}&quot; ({deletingLevel?.code})?
               Esta acción no se puede deshacer.
             </p>
           </DialogBody>

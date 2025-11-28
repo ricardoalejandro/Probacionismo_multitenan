@@ -380,7 +380,7 @@ export default function HolidaysModule() {
           </DialogHeader>
           <DialogBody>
             <p className="text-muted-foreground">
-              ¿Está seguro de eliminar el feriado "{deletingHoliday?.name}"?
+              ¿Está seguro de eliminar el feriado &quot;{deletingHoliday?.name}&quot;?
               Esta acción no se puede deshacer.
             </p>
           </DialogBody>

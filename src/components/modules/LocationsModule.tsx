@@ -524,8 +524,8 @@ export default function LocationsModule() {
             <DialogTitle>Confirmar eliminación</DialogTitle>
           </DialogHeader>
           <DialogBody>
-            <p className="text-muted-foreground">">
-              ¿Está seguro de eliminar "{deletingItem?.name}"?
+            <p className="text-muted-foreground">
+              ¿Está seguro de eliminar &quot;{deletingItem?.name}&quot;?
               {deletingItem?.type === 'department' && (
                 <span className="text-destructive block mt-2 text-sm">
                   ⚠️ Se eliminarán todas las provincias y distritos asociados.

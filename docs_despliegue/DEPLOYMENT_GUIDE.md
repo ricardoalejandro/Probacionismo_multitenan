@@ -289,15 +289,45 @@ Nginx (:80/:443)
 
 ## 🔐 Seguridad
 
-### Checklist de Seguridad:
-- ✅ JWT_SECRET único y fuerte
-- ✅ Passwords seguros en PostgreSQL
-- ✅ HTTPS con certificado válido
+### Checklist de Seguridad (Actualizado 2025-11-28):
+- ✅ JWT_SECRET único y fuerte (64 caracteres)
+- ✅ Passwords seguros en PostgreSQL (43 caracteres)
+- ✅ HTTPS con certificado válido (Let's Encrypt, expira Feb 2026)
 - ✅ CORS configurado correctamente
-- ✅ PostgreSQL/Redis en red privada
-- ✅ Nginx con security headers
-- ✅ Backups automáticos configurados
-- ✅ Firewall UFW (opcional, actualmente inactivo)
+- ✅ PostgreSQL en red privada (puerto 5432 NO expuesto)
+- ✅ Redis en red privada con contraseña (puerto 6379 NO expuesto)
+- ✅ **Puertos 3000/5000 solo en localhost** (127.0.0.1, no accesibles desde internet)
+- ✅ Nginx como único punto de entrada público
+- ✅ Backups automáticos configurados (3:00 AM diario)
+- ✅ **Firewall UFW activo** (solo puertos 22, 80, 443)
+- ✅ **Fail2ban activo** (bloquea IPs con 3 intentos fallidos SSH por 24h)
+- ✅ **SSH solo con claves** (password authentication deshabilitado)
+
+### ⚠️ IMPORTANTE - Lecciones del Incidente de Seguridad (Nov 2025):
+
+El 10 de noviembre de 2025 se detectó un ataque de ransomware que entró por Redis expuesto. 
+**Acciones tomadas:**
+
+1. **Redis ahora tiene contraseña obligatoria** (configurada en `.env`)
+2. **Puertos de BD/Redis NO se exponen a internet**
+3. **Archivo malicioso `dump.rdb` eliminado** 
+4. **Fail2ban instalado** para bloquear fuerza bruta
+5. **Puertos 3000/5000 cambiados de 0.0.0.0 a 127.0.0.1**
+
+### Verificar Seguridad:
+```bash
+# Ver puertos expuestos
+netstat -tlnp | grep LISTEN
+
+# Verificar fail2ban
+fail2ban-client status sshd
+
+# Verificar firewall
+ufw status
+
+# Ver intentos de ataque bloqueados
+grep "Ban" /var/log/fail2ban.log | tail -20
+```
 
 ### Actualizar Secrets:
 ```bash
@@ -310,6 +340,49 @@ nano .env.production
 # 3. Redesplegar
 ./deploy.sh
 ```
+
+---
+
+## 📝 Notas para el Próximo Despliegue
+
+### Pendientes de Migración de BD:
+Las siguientes columnas/tablas fueron agregadas manualmente y deben incluirse en futuras migraciones:
+
+```sql
+-- Agregado 2025-11-28: Campos de horario en grupos
+ALTER TABLE class_groups ADD COLUMN start_time text;
+ALTER TABLE class_groups ADD COLUMN end_time text;
+
+-- Agregado 2025-11-28: Tabla de asistentes de grupo
+CREATE TABLE group_assistants (...);
+```
+
+### Cambios en docker-compose.yml (2025-11-28):
+Los puertos del backend y frontend fueron cambiados para mayor seguridad:
+```yaml
+# ANTES (inseguro):
+ports:
+  - "3000:3000"  # Expuesto a internet
+  
+# AHORA (seguro):
+ports:
+  - "127.0.0.1:3000:3000"  # Solo localhost
+```
+
+### Frontend en Modo Producción:
+**IMPORTANTE**: El frontend debe desplegarse en modo producción para mejor rendimiento.
+Cambiar en `docker-compose.yml`:
+```yaml
+# De:
+target: development
+NODE_ENV: development
+
+# A:
+target: runner
+NODE_ENV: production
+```
+
+Esto reduce el bundle de ~6MB a ~400KB y mejora el tiempo de carga de ~60s a ~5s.
 
 ---
 
