@@ -162,19 +162,19 @@ function SortableSession({
           {/* Indicadores de estado */}
           <div className="flex items-center gap-1 ml-2">
             {validation.dateError && (
-              <Badge variant="destructive" className="text-xs">
+              <Badge variant="danger" className="text-xs">
                 <XCircle className="h-3 w-3 mr-1" />
                 Error fecha
               </Badge>
             )}
             {validation.hasEmptyTopics && (
-              <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 bg-amber-50">
+              <Badge variant="secondary" className="text-xs border-amber-500 text-amber-700 bg-amber-50">
                 <AlertTriangle className="h-3 w-3 mr-1" />
                 Tema vacío
               </Badge>
             )}
             {validation.gapWarning && !validation.dateError && (
-              <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-700 bg-yellow-50">
+              <Badge variant="secondary" className="text-xs border-yellow-500 text-yellow-700 bg-yellow-50">
                 <AlertTriangle className="h-3 w-3 mr-1" />
                 Gap
               </Badge>
@@ -246,7 +246,7 @@ function SortableSession({
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-accent-11">📚 {topic.courseName}</h4>
                   {isEmptyTopic && (
-                    <Badge variant="outline" className="border-amber-500 text-amber-700">
+                    <Badge variant="secondary" className="border-amber-500 text-amber-700">
                       <AlertTriangle className="h-3 w-3 mr-1" />
                       Tema pendiente
                     </Badge>
@@ -536,33 +536,33 @@ export default function SessionCalendarEditor({
         <span className="text-sm font-medium">Estado del calendario:</span>
         <div className="flex items-center gap-3">
           {totalErrors > 0 ? (
-            <Badge variant="destructive">
+            <Badge variant="danger">
               <XCircle className="h-3 w-3 mr-1" />
               {totalErrors} error{totalErrors > 1 ? 'es' : ''} de fecha
             </Badge>
           ) : (
-            <Badge variant="outline" className="border-green-500 text-green-700">
+            <Badge variant="secondary" className="border-green-500 text-green-700">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               Fechas OK
             </Badge>
           )}
           
           {totalEmptyTopics > 0 && (
-            <Badge variant="outline" className="border-amber-500 text-amber-700">
+            <Badge variant="secondary" className="border-amber-500 text-amber-700">
               <AlertTriangle className="h-3 w-3 mr-1" />
               {totalEmptyTopics} sesión{totalEmptyTopics > 1 ? 'es' : ''} sin tema
             </Badge>
           )}
           
           {totalWarnings > 0 && (
-            <Badge variant="outline" className="border-yellow-500 text-yellow-700">
+            <Badge variant="secondary" className="border-yellow-500 text-yellow-700">
               <AlertTriangle className="h-3 w-3 mr-1" />
               {totalWarnings} gap{totalWarnings > 1 ? 's' : ''} detectado{totalWarnings > 1 ? 's' : ''}
             </Badge>
           )}
 
           {totalErrors === 0 && totalEmptyTopics === 0 && totalWarnings === 0 && (
-            <Badge variant="outline" className="border-green-500 text-green-700">
+            <Badge variant="secondary" className="border-green-500 text-green-700">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               Todo listo
             </Badge>
@@ -580,7 +580,7 @@ export default function SessionCalendarEditor({
             className="pl-10"
           />
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={addSession}>
+        <Button type="button" variant="secondary" size="sm" onClick={addSession}>
           <Plus className="h-4 w-4 mr-1" />
           Añadir Sesión
         </Button>

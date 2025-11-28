@@ -357,17 +357,17 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
                     </div>
                     <div className="flex items-center gap-2">
                       {pending.isToday ? (
-                        <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300">
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300">
                           Hoy
                         </Badge>
                       ) : (
-                        <Badge variant="destructive">
+                        <Badge variant="danger">
                           {pending.daysOverdue} días de atraso
                         </Badge>
                       )}
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="secondary"
                         onClick={() => handleOpenPendingSession(pending)}
                       >
                         Registrar
@@ -440,7 +440,7 @@ function GroupCard({
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg">{group.name}</CardTitle>
           {group.pendientes > 0 && (
-            <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300">
+            <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300">
               {group.pendientes} pendientes
             </Badge>
           )}
@@ -559,15 +559,15 @@ function SessionListView({
                   {session.status === 'dictada' ? (
                     <Badge className="bg-green-600">Dictada</Badge>
                   ) : isPast ? (
-                    <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300">
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300">
                       Por registrar
                     </Badge>
                   ) : isToday ? (
-                    <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-300">
                       Hoy
                     </Badge>
                   ) : (
-                    <Badge variant="outline">Programada</Badge>
+                    <Badge variant="secondary">Programada</Badge>
                   )}
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </div>
@@ -640,7 +640,7 @@ function SessionCalendarView({
       <CardHeader>
         <div className="flex items-center justify-between">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() =>
               setCurrentMonth(
@@ -657,7 +657,7 @@ function SessionCalendarView({
             })}
           </h3>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() =>
               setCurrentMonth(
@@ -803,13 +803,13 @@ function SessionPendingView({
                     <div className="flex items-center gap-2">
                       {isToday ? (
                         <Badge
-                          variant="outline"
+                          variant="secondary"
                           className="bg-amber-100 text-amber-700 border-amber-300"
                         >
                           Hoy
                         </Badge>
                       ) : (
-                        <Badge variant="destructive">
+                        <Badge variant="danger">
                           {daysOverdue} días de atraso
                         </Badge>
                       )}
@@ -849,7 +849,7 @@ function SessionPendingView({
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline">Programada</Badge>
+                  <Badge variant="secondary">Programada</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -945,20 +945,20 @@ function SessionTimelineView({
                       <Badge className="bg-green-600">Dictada</Badge>
                     ) : isPast ? (
                       <Badge
-                        variant="outline"
+                        variant="secondary"
                         className="bg-amber-100 text-amber-700 border-amber-300"
                       >
                         Por registrar
                       </Badge>
                     ) : isToday ? (
                       <Badge
-                        variant="outline"
+                        variant="secondary"
                         className="bg-blue-100 text-blue-700 border-blue-300"
                       >
                         Hoy
                       </Badge>
                     ) : (
-                      <Badge variant="outline">Programada</Badge>
+                      <Badge variant="secondary">Programada</Badge>
                     )}
                   </div>
                 </CardContent>

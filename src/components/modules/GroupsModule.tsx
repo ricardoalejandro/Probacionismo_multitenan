@@ -21,9 +21,15 @@ interface Group {
   name: string;
   description: string;
   status: string;
-  branch_name: string;
-  recurrence_start_date: string;
-  recurrence_frequency: string;
+  branchId: string;
+  startDate: string;
+  endDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  frequency: string;
+  recurrenceFrequency: string;
+  recurrenceInterval: number;
+  maxOccurrences: number | null;
 }
 
 interface PaginationData {
