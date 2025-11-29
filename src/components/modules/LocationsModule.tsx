@@ -154,8 +154,8 @@ export default function LocationsModule() {
       const isEditing = editingItem?.id;
       
       if (type === 'department') {
-        if (!deptForm.code || !deptForm.name) {
-          toast.error('Código y nombre son requeridos');
+        if (!deptForm.name) {
+          toast.error('El nombre es requerido');
           return;
         }
         if (isEditing) {
@@ -421,20 +421,20 @@ export default function LocationsModule() {
             {editingItem?.type === 'department' && (
               <>
                 <div className="space-y-2">
-                  <Label>Código *</Label>
-                  <Input
-                    value={deptForm.code}
-                    onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value.toUpperCase() })}
-                    placeholder="Ej: LIM"
-                    maxLength={10}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label>Nombre *</Label>
                   <Input
                     value={deptForm.name}
                     onChange={(e) => setDeptForm({ ...deptForm, name: e.target.value })}
                     placeholder="Ej: Lima"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Código <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                  <Input
+                    value={deptForm.code}
+                    onChange={(e) => setDeptForm({ ...deptForm, code: e.target.value.toUpperCase() })}
+                    placeholder="Se autogenera si no se ingresa"
+                    maxLength={10}
                   />
                 </div>
               </>

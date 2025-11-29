@@ -6,9 +6,22 @@ import { z } from 'zod';
 
 // Validation schemas
 const departmentSchema = z.object({
-  code: z.string().min(1).max(10),
+  code: z.string().max(10).optional(),
   name: z.string().min(1).max(100),
 });
+
+// Helper function to generate unique code from name
+function generateCode(name: string, maxLength: number = 10): string {
+  const normalized = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '') // Only alphanumeric
+    .substring(0, maxLength - 3); // Leave space for numbers
+  
+  const timestamp = Date.now().toString(36).toUpperCase().slice(-3);
+  return (normalized + timestamp).substring(0, maxLength);
+}
 
 const provinceSchema = z.object({
   departmentId: z.string().uuid(),
@@ -43,9 +56,15 @@ export const locationRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const validatedData = departmentSchema.parse(request.body);
       
+      // Autogenerar código si no se proporciona
+      const dataToInsert = {
+        ...validatedData,
+        code: validatedData.code || generateCode(validatedData.name),
+      };
+      
       const [newDepartment] = await db
         .insert(departments)
-        .values(validatedData)
+        .values(dataToInsert)
         .returning();
       
       return { success: true, data: newDepartment };
