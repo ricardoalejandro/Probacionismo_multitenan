@@ -986,8 +986,8 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
 
         {/* Session Finalization Modal */}
         <Dialog open={sessionModalOpen} onOpenChange={setSessionModalOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto p-6">
+            <DialogHeader className="pb-4">
               <DialogTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
                 {selectedSession?.status === 'dictada' ? 'Detalles de Sesión' : 'Finalizar Sesión'}
@@ -997,7 +997,7 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
+            <div className="space-y-4 py-2">
               {/* Session status indicator */}
               {selectedSession?.status === 'pendiente' && (
                 <div className={cn(
@@ -1076,7 +1076,7 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="pt-4 gap-2 sm:gap-0">
               <Button variant="outline" onClick={() => setSessionModalOpen(false)}>
                 Cancelar
               </Button>
@@ -1100,8 +1100,8 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
 
         {/* Observations Modal */}
         <Dialog open={observationsModalOpen} onOpenChange={setObservationsModalOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-md w-[95vw] max-h-[90vh] overflow-y-auto p-6">
+            <DialogHeader className="pb-4">
               <DialogTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
                 Observaciones
@@ -1151,7 +1151,7 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="pt-4 gap-2 sm:gap-0">
               <Button variant="outline" onClick={() => setObservationsModalOpen(false)}>
                 Cerrar
               </Button>
