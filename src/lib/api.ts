@@ -521,6 +521,12 @@ class ApiClient {
     return response.data;
   }
 
+  // Reopen session (change from dictada to pendiente)
+  async reopenSession(sessionId: string) {
+    const response = await this.client.put(`/attendance/sessions/${sessionId}/reopen`);
+    return response.data;
+  }
+
   // Get calendar view
   async getAttendanceCalendar(groupId: string, month?: number, year?: number) {
     const response = await this.client.get(`/attendance/calendar/${groupId}`, {

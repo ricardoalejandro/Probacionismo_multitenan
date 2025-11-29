@@ -76,6 +76,16 @@ interface PendingSession {
 
 type ViewMode = 'list' | 'calendar' | 'pending' | 'timeline' | 'notebook';
 
+// Helper function to parse date strings without timezone issues
+const parseDate = (dateStr: string): Date => {
+  return new Date(dateStr + 'T00:00:00');
+};
+
+// Helper function to format dates consistently
+const formatSessionDate = (dateStr: string, options: Intl.DateTimeFormatOptions): string => {
+  return parseDate(dateStr).toLocaleDateString('es-ES', options);
+};
+
 export default function AttendanceModule({ branchId }: { branchId: string }) {
   const [groups, setGroups] = useState<GroupWithStats[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<GroupWithStats | null>(null);
@@ -359,7 +369,7 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
                         <p className="font-medium">{pending.groupName}</p>
                         <p className="text-sm text-muted-foreground">
                           Sesión #{pending.sessionNumber} •{' '}
-                          {new Date(pending.sessionDate).toLocaleDateString('es-ES', {
+                          {formatSessionDate(pending.sessionDate, {
                             weekday: 'short',
                             day: 'numeric',
                             month: 'short',
@@ -552,7 +562,7 @@ function SessionListView({
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(session.sessionDate).toLocaleDateString('es-ES', {
+                      {formatSessionDate(session.sessionDate, {
                         weekday: 'long',
                         day: 'numeric',
                         month: 'long',
@@ -630,7 +640,7 @@ function SessionCalendarView({
   ).getDay();
 
   const monthSessions = sessions.filter((s) => {
-    const sessionDate = new Date(s.sessionDate);
+    const sessionDate = parseDate(s.sessionDate);
     return (
       sessionDate.getMonth() === currentMonth.getMonth() &&
       sessionDate.getFullYear() === currentMonth.getFullYear()
@@ -773,7 +783,7 @@ function SessionPendingView({
           {overdueOrToday.map((session) => {
             const isToday = session.sessionDate === today;
             const daysOverdue = Math.floor(
-              (new Date(today).getTime() - new Date(session.sessionDate).getTime()) /
+              (parseDate(today).getTime() - parseDate(session.sessionDate).getTime()) /
                 (1000 * 60 * 60 * 24)
             );
 
@@ -804,7 +814,7 @@ function SessionPendingView({
                       <div>
                         <p className="font-medium">Sesión #{session.sessionNumber}</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(session.sessionDate).toLocaleDateString('es-ES', {
+                          {formatSessionDate(session.sessionDate, {
                             weekday: 'long',
                             day: 'numeric',
                             month: 'long',
@@ -853,7 +863,7 @@ function SessionPendingView({
                     <div>
                       <p className="font-medium">Sesión #{session.sessionNumber}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(session.sessionDate).toLocaleDateString('es-ES', {
+                        {formatSessionDate(session.sessionDate, {
                           weekday: 'long',
                           day: 'numeric',
                           month: 'long',

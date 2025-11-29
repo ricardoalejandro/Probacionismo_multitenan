@@ -19,6 +19,7 @@ import {
   MessageSquare,
   CheckCircle2,
   Plus,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -310,8 +311,29 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
     }
   };
 
+  // Check if session is dictada
+  const isSessionDictada = (sessionId: string): boolean => {
+    const session = data?.sessions.find(s => s.id === sessionId);
+    return session?.status === 'dictada';
+  };
+
   // Handle attendance status change
   const handleStatusChange = async (studentId: string, sessionId: string, attendanceId: string | null, newStatus: string) => {
+    // Check if session is already dictada
+    if (isSessionDictada(sessionId)) {
+      toast.error('Esta sesión ya está finalizada. Debe reabrir la sesión para editar la asistencia.', {
+        duration: 4000,
+        action: {
+          label: 'Reabrir',
+          onClick: () => {
+            const session = data?.sessions.find(s => s.id === sessionId);
+            if (session) openSessionModal(session);
+          }
+        }
+      });
+      return;
+    }
+
     try {
       if (attendanceId) {
         // Update existing attendance record
@@ -322,9 +344,31 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
       }
       toast.success('Asistencia actualizada');
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating attendance:', error);
-      toast.error('Error al actualizar asistencia');
+      if (error?.response?.status === 403) {
+        toast.error('Esta sesión ya está finalizada. Debe reabrir la sesión para editar.');
+      } else {
+        toast.error('Error al actualizar asistencia');
+      }
+    }
+  };
+
+  // Handle reopen session
+  const handleReopenSession = async () => {
+    if (!selectedSession) return;
+
+    try {
+      setSavingSession(true);
+      await api.reopenSession(selectedSession.id);
+      toast.success('Sesión reabierta. Ahora puede editar la asistencia.');
+      setSessionModalOpen(false);
+      loadData();
+    } catch (error) {
+      console.error('Error reopening session:', error);
+      toast.error('Error al reabrir la sesión');
+    } finally {
+      setSavingSession(false);
     }
   };
 
@@ -1092,6 +1136,21 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
                     <CheckCircle2 className="h-4 w-4" />
                   )}
                   Finalizar Sesión
+                </Button>
+              )}
+              {selectedSession?.status === 'dictada' && (
+                <Button
+                  onClick={handleReopenSession}
+                  disabled={savingSession}
+                  variant="outline"
+                  className="gap-2 border-amber-500 text-amber-600 hover:bg-amber-50"
+                >
+                  {savingSession ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-4 w-4" />
+                  )}
+                  Reabrir Sesión
                 </Button>
               )}
             </DialogFooter>

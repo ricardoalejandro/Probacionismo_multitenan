@@ -735,6 +735,48 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // PUT /api/attendance/sessions/:sessionId/reopen - Reabrir sesión (cambiar de dictada a pendiente)
+  fastify.put('/sessions/:sessionId/reopen', async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string };
+    
+    try {
+      // Verificar que la sesión exista y esté dictada
+      const [session] = await db
+        .select({ 
+          status: groupSessions.status,
+        })
+        .from(groupSessions)
+        .where(eq(groupSessions.id, sessionId))
+        .limit(1);
+
+      if (!session) {
+        return reply.status(404).send({ error: 'Sesión no encontrada' });
+      }
+
+      if (session.status !== 'dictada') {
+        return reply.status(400).send({ error: 'La sesión no está marcada como dictada' });
+      }
+
+      // Reabrir sesión (cambiar a pendiente)
+      const [updated] = await db
+        .update(groupSessions)
+        .set({ 
+          status: 'pendiente',
+          updatedAt: new Date(),
+        })
+        .where(eq(groupSessions.id, sessionId))
+        .returning();
+
+      return { 
+        success: true, 
+        message: 'Sesión reabierta exitosamente. Ahora puede editar la asistencia.',
+        data: updated,
+      };
+    } catch (error) {
+      throw error;
+    }
+  });
+
   // ============================================
   // CALENDARIO DE SESIONES
   // ============================================
