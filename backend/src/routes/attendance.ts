@@ -876,15 +876,22 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(404).send({ error: 'Grupo no encontrado' });
     }
 
-    // 2. Obtener todas las sesiones del grupo (con filtros de fecha opcionales)
+    // 2. Obtener todas las sesiones del grupo CON datos de ejecución
     const allSessions = await db
       .select({
         id: groupSessions.id,
         sessionNumber: groupSessions.sessionNumber,
         sessionDate: groupSessions.sessionDate,
         status: groupSessions.status,
+        // Datos de ejecución (si existen)
+        executionId: sessionExecution.id,
+        actualInstructorId: sessionExecution.actualInstructorId,
+        actualTopic: sessionExecution.actualTopic,
+        actualDate: sessionExecution.actualDate,
+        notes: sessionExecution.notes,
       })
       .from(groupSessions)
+      .leftJoin(sessionExecution, eq(sessionExecution.sessionId, groupSessions.id))
       .where(eq(groupSessions.groupId, groupId))
       .orderBy(asc(groupSessions.sessionNumber));
 
@@ -1099,6 +1106,13 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
         number: s.sessionNumber,
         date: s.sessionDate,
         status: s.status,
+        // Datos de ejecución (pueden ser null si no existe registro)
+        execution: s.executionId ? {
+          actualInstructorId: s.actualInstructorId,
+          actualTopic: s.actualTopic,
+          actualDate: s.actualDate,
+          notes: s.notes,
+        } : null,
       })),
       students: filteredStudents,
       sessionStats,

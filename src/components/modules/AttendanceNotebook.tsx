@@ -62,11 +62,19 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 // Types
+interface SessionExecution {
+  actualInstructorId: string | null;
+  actualTopic: string | null;
+  actualDate: string | null;
+  notes: string | null;
+}
+
 interface NotebookSession {
   id: string;
   number: number;
   date: string;
   status: 'pendiente' | 'dictada';
+  execution: SessionExecution | null;
 }
 
 interface StudentStats {
@@ -375,11 +383,12 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
   // Open session finalization modal
   const openSessionModal = (session: NotebookSession) => {
     setSelectedSession(session);
+    // Cargar datos existentes de ejecución si existen, sino usar valores por defecto
     setSessionFormData({
-      actualDate: session.date,
-      actualInstructorId: '',
-      actualTopic: '',
-      notes: '',
+      actualDate: session.execution?.actualDate || session.date,
+      actualInstructorId: session.execution?.actualInstructorId || '',
+      actualTopic: session.execution?.actualTopic || '',
+      notes: session.execution?.notes || '',
     });
     setSessionModalOpen(true);
   };
