@@ -292,15 +292,15 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
   return (
     <div className="h-full flex flex-col">
       {/* HEADER FIJO - Siempre visible */}
-      <div className="flex-none bg-neutral-2 pb-6 space-y-4">
+      <div className="flex-none pb-5 space-y-4">
         {/* Title and Actions */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-11">
-              Probacionistas
+            <h1 className="text-xl font-semibold text-gray-900">
+              Gestión de Alumnos
             </h1>
-            <p className="text-neutral-9 mt-1">
-              Gestión completa de estudiantes
+            <p className="text-gray-500 text-sm mt-0.5">
+              Busca alumnos por nombre, apellido, DNI o email
             </p>
           </div>
           <Button
@@ -311,19 +311,19 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
             className="bg-accent-9 hover:bg-accent-10 text-white"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Nuevo Probacionista
+            Nuevo Alumno
           </Button>
         </div>
 
         {/* Search + View Selector */}
         <div className="flex gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-9 h-5 w-5" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Buscar por DNI, nombre o email..."
+              placeholder="Buscar alumnos..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 bg-white"
+              className="pl-9 bg-white border-gray-200"
             />
             {search !== debouncedSearch && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -333,30 +333,30 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
           </div>
 
           {/* VIEW MODE SELECTOR */}
-          <div className="flex border border-neutral-4 rounded-lg overflow-hidden bg-white">
+          <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-white">
             <button
               onClick={() => setViewMode('cards')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${viewMode === 'cards'
+              className={`px-3 py-2 text-sm font-medium transition-colors ${viewMode === 'cards'
                 ? 'bg-accent-9 text-white'
-                : 'bg-white text-neutral-11 hover:bg-neutral-2'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
             >
               Tarjetas
             </button>
             <button
               onClick={() => setViewMode('compact')}
-              className={`px-4 py-2 text-sm font-medium transition-colors border-x border-neutral-4 ${viewMode === 'compact'
+              className={`px-3 py-2 text-sm font-medium transition-colors border-x border-gray-200 ${viewMode === 'compact'
                 ? 'bg-accent-9 text-white'
-                : 'bg-white text-neutral-11 hover:bg-neutral-2'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
             >
               Compacta
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${viewMode === 'list'
+              className={`px-3 py-2 text-sm font-medium transition-colors ${viewMode === 'list'
                 ? 'bg-accent-9 text-white'
-                : 'bg-white text-neutral-11 hover:bg-neutral-2'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
             >
               Lista
@@ -367,14 +367,15 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
 
       {/* CONTENT SCROLLEABLE - Tabla con scroll independiente */}
       <div className="flex-1 overflow-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-neutral-4">
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           {loading ? (
             <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-9 mx-auto"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-accent-9 mx-auto"></div>
+              <p className="text-gray-500 text-sm mt-3">Cargando alumnos...</p>
             </div>
           ) : students.length === 0 ? (
-            <div className="p-8 text-center text-neutral-10">
-              No se encontraron probacionistas
+            <div className="p-8 text-center text-gray-500">
+              No se encontraron alumnos
             </div>
           ) : (
             <>
@@ -450,20 +451,20 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
       <ResponsiveDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        title={`${editingStudent ? 'Editar' : 'Nuevo'} Probacionista`}
+        title={`${editingStudent ? 'Editar' : 'Nuevo'} Alumno`}
       >
         <form
           onSubmit={handleSubmit}
           className="space-y-6"
         >
           {editingStudent && (
-            <div className="flex items-center gap-3 pb-4 border-b border-neutral-200">
-              <span className="text-sm font-medium text-neutral-700">Estado Actual:</span>
+            <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+              <span className="text-sm font-medium text-gray-600">Estado Actual:</span>
               <Badge variant={editingStudent.status === 'Baja' ? 'danger' : 'success'}>
                 {editingStudent.status}
               </Badge>
               {editingStudent.status === 'Baja' && (
-                <span className="text-xs text-neutral-500">(Probacionista dado de baja)</span>
+                <span className="text-xs text-gray-500">(Alumno dado de baja)</span>
               )}
             </div>
           )}

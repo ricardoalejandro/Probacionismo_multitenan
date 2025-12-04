@@ -64,21 +64,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-subtle p-4">
-      <Card className="w-full max-w-md shadow-xl animate-fade-in-up border-neutral-3">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md border border-gray-200 shadow-sm">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="rounded-full bg-accent-9 p-4 shadow-lg transition-transform duration-300 hover:scale-105">
-              <GraduationCap className="h-8 w-8 text-white" />
+            <div className="rounded-full bg-accent-9 p-4">
+              <GraduationCap className="h-6 w-6 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-neutral-11">Sistema Académico</CardTitle>
-          <CardDescription className="text-neutral-6">Gestión Multi-Tenant para Instituciones Educativas</CardDescription>
+          <CardTitle className="text-xl font-semibold text-gray-900">Sistema Académico</CardTitle>
+          <CardDescription className="text-gray-500">Gestión Multi-Tenant para Instituciones</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-sm font-medium text-neutral-7">Usuario</Label>
+              <Label htmlFor="username" className="text-sm font-medium text-gray-700">Usuario</Label>
               <Input
                 id="username"
                 type="text"
@@ -87,11 +87,11 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={isLoading}
-                className="h-11"
+                className="h-10 border-gray-200"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-neutral-7">Contraseña</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
@@ -100,12 +100,12 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
-                className="h-11"
+                className="h-10 border-gray-200"
               />
             </div>
             <Button 
               type="submit" 
-              className="w-full h-11 bg-accent-9 hover:bg-accent-10 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200" 
+              className="w-full h-10 bg-accent-9 hover:bg-accent-10 text-white font-medium" 
               disabled={isLoading}
             >
               {isLoading ? (
@@ -121,7 +121,7 @@ export default function LoginPage() {
             <div className="text-center pt-2">
               <Button 
                 variant="link" 
-                className="text-sm text-neutral-6 hover:text-accent-9 transition-colors"
+                className="text-sm text-gray-500 hover:text-accent-9"
                 type="button"
                 onClick={() => setShowForgotPassword(true)}
               >

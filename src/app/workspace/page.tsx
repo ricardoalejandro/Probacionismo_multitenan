@@ -95,38 +95,45 @@ function WorkspaceContent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-neutral-1 via-neutral-2 to-accent-2">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-accent-3 border-t-accent-9"></div>
-          <p className="text-neutral-10 animate-pulse">Cargando espacio de trabajo...</p>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-accent-9"></div>
+          <p className="text-gray-500 text-sm">Cargando...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-neutral-1 via-neutral-2 to-accent-2">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <div
         className={cn(
-          'bg-white/95 backdrop-blur-sm border-r border-neutral-4/50 flex flex-col shadow-xl transition-all duration-300 ease-in-out',
-          sidebarCollapsed ? 'w-16' : 'w-64'
+          'bg-white border-r border-gray-200 flex flex-col transition-all duration-200',
+          sidebarCollapsed ? 'w-16' : 'w-60'
         )}
       >
         {/* Header */}
-        <div className={cn('p-4 border-b border-neutral-4/50 bg-gradient-to-r from-accent-2 to-accent-3', sidebarCollapsed && 'p-2')}>
+        <div className={cn('p-4 border-b border-gray-100', sidebarCollapsed && 'p-2')}>
           {!sidebarCollapsed && (
             <>
-              <h2 className="font-bold text-lg truncate text-neutral-11">{branch?.name}</h2>
-              <p className="text-sm text-neutral-9 font-medium bg-neutral-3 inline-block px-2 py-0.5 rounded mt-1">{branch?.code}</p>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 bg-accent-9 rounded-lg flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold">SA</span>
+                </div>
+                <div>
+                  <h2 className="font-semibold text-sm text-gray-900 truncate">{branch?.name}</h2>
+                  <p className="text-xs text-gray-500">{branch?.code}</p>
+                </div>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleBack}
-                className="mt-3 w-full justify-start hover:bg-accent-4 transition-all duration-200"
+                className="mt-2 w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver al Dashboard
+                Volver
               </Button>
             </>
           )}
@@ -135,7 +142,7 @@ function WorkspaceContent() {
               variant="ghost"
               size="icon"
               onClick={handleBack}
-              className="w-full hover:bg-accent-4 transition-all duration-200"
+              className="w-full hover:bg-gray-100"
               title="Volver al Dashboard"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -144,21 +151,21 @@ function WorkspaceContent() {
         </div>
 
         {/* Toggle Button */}
-        <div className={cn('p-2 border-b border-neutral-4/50', sidebarCollapsed && 'px-1')}>
+        <div className={cn('p-2 border-b border-gray-100', sidebarCollapsed && 'px-1')}>
           <Button
             variant="ghost"
             size={sidebarCollapsed ? 'icon' : 'sm'}
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className={cn('w-full transition-all duration-200 hover:bg-neutral-3', sidebarCollapsed ? 'px-0' : 'justify-start')}
+            className={cn('w-full text-gray-500 hover:text-gray-700 hover:bg-gray-100', sidebarCollapsed ? 'px-0' : 'justify-start')}
             title={sidebarCollapsed ? 'Expandir menú' : 'Contraer menú'}
           >
             <Menu className={cn('h-4 w-4', !sidebarCollapsed && 'mr-2')} />
-            {!sidebarCollapsed && <span>Contraer menú</span>}
+            {!sidebarCollapsed && <span className="text-sm">Contraer</span>}
           </Button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-2 space-y-1 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
           {modules.map((module) => {
             const Icon = module.icon;
             return (
@@ -168,23 +175,23 @@ function WorkspaceContent() {
                 disabled={module.disabled}
                 title={sidebarCollapsed ? module.name : undefined}
                 className={`
-                  w-full flex items-center gap-3 rounded-xl text-left transition-all duration-200 ease-in-out
-                  ${sidebarCollapsed ? 'px-2 py-3 justify-center' : 'px-4 py-3'}
+                  w-full flex items-center gap-3 rounded-lg text-left transition-colors duration-150
+                  ${sidebarCollapsed ? 'px-2 py-2.5 justify-center' : 'px-3 py-2.5'}
                   ${
                     activeModule === module.id
-                      ? 'bg-gradient-to-r from-accent-9 to-accent-10 text-white shadow-lg scale-[1.02]'
-                      : 'hover:bg-accent-3/50 text-neutral-12 hover:shadow-md hover:scale-[1.01]'
+                      ? 'bg-accent-9 text-white'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }
                   ${module.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
               >
-                <Icon className={cn('h-5 w-5 flex-shrink-0 transition-transform duration-200', activeModule === module.id && 'scale-110')} />
+                <Icon className="h-5 w-5 flex-shrink-0" />
                 {!sidebarCollapsed && (
                   <>
-                    <span className="font-medium flex-1">{module.name}</span>
+                    <span className="text-sm font-medium flex-1">{module.name}</span>
                     {module.disabled && (
-                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full shadow-sm">
-                        Próximamente
+                      <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">
+                        Pronto
                       </span>
                     )}
                   </>
@@ -195,67 +202,67 @@ function WorkspaceContent() {
         </nav>
 
         {/* Footer */}
-        <div className={cn('p-2 border-t border-neutral-4/50', sidebarCollapsed && 'px-1')}>
+        <div className={cn('p-2 border-t border-gray-100', sidebarCollapsed && 'px-1')}>
           <Button
-            variant="outline"
+            variant="ghost"
             size={sidebarCollapsed ? 'icon' : 'sm'}
             className={cn(
-              'w-full hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all duration-200',
+              'w-full text-gray-500 hover:text-red-600 hover:bg-red-50',
               sidebarCollapsed ? 'px-0' : 'justify-start'
             )}
             onClick={handleLogout}
             title={sidebarCollapsed ? 'Cerrar Sesión' : undefined}
           >
             <LogOut className={cn('h-4 w-4', !sidebarCollapsed && 'mr-2')} />
-            {!sidebarCollapsed && 'Cerrar Sesión'}
+            {!sidebarCollapsed && <span className="text-sm">Cerrar Sesión</span>}
           </Button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-auto p-8 custom-scrollbar">
+      <div className="flex-1 overflow-hidden flex flex-col bg-gray-50">
+        <div className="flex-1 overflow-auto p-6">
           {activeModule === 'home' && (
-            <div className="animate-fade-in-up">
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-neutral-12 to-neutral-10 bg-clip-text text-transparent">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900 mb-1">
                 Bienvenido
               </h1>
-              <p className="text-neutral-9 mb-8">Selecciona un módulo para comenzar</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="animate-fade-in-up bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] border border-neutral-4/50 cursor-pointer group" style={{ animationDelay: '0.05s' }} onClick={() => setActiveModule('students')}>
-                  <div className="bg-gradient-to-br from-accent-8 to-accent-10 p-3 rounded-xl w-fit mb-4 shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110">
-                    <Users className="h-8 w-8 text-white" />
+              <p className="text-gray-500 text-sm mb-6">Selecciona un módulo para comenzar</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bg-white p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer" onClick={() => setActiveModule('students')}>
+                  <div className="bg-accent-9 p-2.5 rounded-lg w-fit mb-3">
+                    <Users className="h-5 w-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-neutral-11 group-hover:text-accent-11 transition-colors">Probacionistas</h3>
-                  <p className="text-neutral-9">Gestiona estudiantes y sus datos</p>
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">Probacionistas</h3>
+                  <p className="text-sm text-gray-500">Gestiona estudiantes y sus datos</p>
                 </div>
-                <div className="animate-fade-in-up bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] border border-neutral-4/50 cursor-pointer group" style={{ animationDelay: '0.1s' }} onClick={() => setActiveModule('courses')}>
-                  <div className="bg-gradient-to-br from-accent-8 to-accent-10 p-3 rounded-xl w-fit mb-4 shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110">
-                    <BookOpen className="h-8 w-8 text-white" />
+                <div className="bg-white p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer" onClick={() => setActiveModule('courses')}>
+                  <div className="bg-accent-9 p-2.5 rounded-lg w-fit mb-3">
+                    <BookOpen className="h-5 w-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-neutral-11 group-hover:text-accent-11 transition-colors">Cursos</h3>
-                  <p className="text-neutral-9">Administra cursos y temas</p>
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">Cursos</h3>
+                  <p className="text-sm text-gray-500">Administra cursos y temas</p>
                 </div>
-                <div className="animate-fade-in-up bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] border border-neutral-4/50 cursor-pointer group" style={{ animationDelay: '0.15s' }} onClick={() => setActiveModule('instructors')}>
-                  <div className="bg-gradient-to-br from-accent-8 to-accent-10 p-3 rounded-xl w-fit mb-4 shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110">
-                    <UserCheck className="h-8 w-8 text-white" />
+                <div className="bg-white p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer" onClick={() => setActiveModule('instructors')}>
+                  <div className="bg-accent-9 p-2.5 rounded-lg w-fit mb-3">
+                    <UserCheck className="h-5 w-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-neutral-11 group-hover:text-accent-11 transition-colors">Instructores</h3>
-                  <p className="text-neutral-9">Gestiona el personal docente</p>
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">Instructores</h3>
+                  <p className="text-sm text-gray-500">Gestiona el personal docente</p>
                 </div>
-                <div className="animate-fade-in-up bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] border border-neutral-4/50 cursor-pointer group" style={{ animationDelay: '0.2s' }} onClick={() => setActiveModule('groups')}>
-                  <div className="bg-gradient-to-br from-accent-8 to-accent-10 p-3 rounded-xl w-fit mb-4 shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110">
-                    <FolderKanban className="h-8 w-8 text-white" />
+                <div className="bg-white p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer" onClick={() => setActiveModule('groups')}>
+                  <div className="bg-accent-9 p-2.5 rounded-lg w-fit mb-3">
+                    <FolderKanban className="h-5 w-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-neutral-11 group-hover:text-accent-11 transition-colors">Grupos</h3>
-                  <p className="text-neutral-9">Organiza grupos de clases</p>
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">Grupos</h3>
+                  <p className="text-sm text-gray-500">Organiza grupos de clases</p>
                 </div>
-                <div className="animate-fade-in-up bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] border border-neutral-4/50 cursor-pointer group" style={{ animationDelay: '0.25s' }} onClick={() => setActiveModule('attendance')}>
-                  <div className="bg-gradient-to-br from-accent-8 to-accent-10 p-3 rounded-xl w-fit mb-4 shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-110">
-                    <ClipboardCheck className="h-8 w-8 text-white" />
+                <div className="bg-white p-5 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-200 cursor-pointer" onClick={() => setActiveModule('attendance')}>
+                  <div className="bg-accent-9 p-2.5 rounded-lg w-fit mb-3">
+                    <ClipboardCheck className="h-5 w-5 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold mb-2 text-neutral-11 group-hover:text-accent-11 transition-colors">Asistencia</h3>
-                  <p className="text-neutral-9">Registra asistencia de sesiones</p>
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">Asistencia</h3>
+                  <p className="text-sm text-gray-500">Registra asistencia de sesiones</p>
                 </div>
               </div>
             </div>
@@ -290,10 +297,10 @@ export default function WorkspacePage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-neutral-1 via-neutral-2 to-accent-2">
-          <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-accent-3 border-t-accent-9"></div>
-            <p className="text-neutral-10 animate-pulse">Cargando...</p>
+        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-200 border-t-accent-9"></div>
+            <p className="text-gray-500 text-sm">Cargando...</p>
           </div>
         </div>
       }

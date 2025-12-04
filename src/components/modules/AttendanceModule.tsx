@@ -225,8 +225,8 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
               Volver a grupos
             </Button>
             <div>
-              <h2 className="text-2xl font-bold">{selectedGroup.name}</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-xl font-semibold text-gray-900">{selectedGroup.name}</h2>
+              <p className="text-gray-500 text-sm">
                 {selectedGroup.enrolledStudents} estudiantes • {selectedGroup.totalSessions} sesiones
               </p>
             </div>
@@ -320,12 +320,12 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <ClipboardList className="h-6 w-6" />
+          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+            <ClipboardList className="h-5 w-5" />
             Registro de Asistencias
           </h2>
-          <p className="text-muted-foreground">
-            Selecciona un grupo para registrar asistencia de sus sesiones
+          <p className="text-gray-500 text-sm mt-0.5">
+            Selecciona un grupo para registrar asistencia
           </p>
         </div>
       </div>
