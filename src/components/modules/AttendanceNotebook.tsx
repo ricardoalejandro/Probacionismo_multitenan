@@ -243,11 +243,20 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
   const [sessionsPerPage, setSessionsPerPage] = useState(5);
   const [studentFilter, setStudentFilter] = useState<'all' | 'critical' | 'search'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'attendance' | 'absences'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [selectedCourseId, setSelectedCourseId] = useState<string>('_all_');
+
+  // Debounce search term (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Session finalization modal
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
@@ -280,7 +289,7 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
         page,
         sessionsPerPage,
         studentFilter,
-        searchTerm: studentFilter === 'search' ? searchTerm : undefined,
+        searchTerm: studentFilter === 'search' ? debouncedSearchTerm : undefined,
         sortBy,
         sortOrder,
         startDate: startDate || undefined,
@@ -294,7 +303,7 @@ export function AttendanceNotebook({ groupId, groupName, onBack }: AttendanceNot
     } finally {
       setLoading(false);
     }
-  }, [groupId, page, sessionsPerPage, studentFilter, searchTerm, sortBy, sortOrder, startDate, endDate, selectedCourseId]);
+  }, [groupId, page, sessionsPerPage, studentFilter, debouncedSearchTerm, sortBy, sortOrder, startDate, endDate, selectedCourseId]);
 
   // Load instructors (separate from courses to avoid cascade failure)
   const loadInstructors = useCallback(async () => {

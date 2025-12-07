@@ -211,7 +211,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
       // Fetch full template with topics
       const response = await api.axiosInstance.get(`/course-templates/${template.id}`);
       const fullTemplate = response.data;
-      
+
       // Si es curso existente, confirmar reemplazo
       if (editingCourse && formData.themes.length > 0) {
         const confirmed = confirm(
@@ -219,7 +219,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
         );
         if (!confirmed) return;
       }
-      
+
       setFormData({
         ...formData,
         name: formData.name || fullTemplate.name, // Keep name if already set
@@ -231,10 +231,10 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
           _status: 'new' as const,
         })),
       });
-      
+
       setSelectedTemplate(template);
       setShowTemplateSelector(false);
-      
+
       if (editingCourse) {
         toast.success(`Temas reemplazados con plantilla "${template.name}" (${fullTemplate.topics?.length || 0} temas). Guarda para aplicar cambios.`);
       } else {
@@ -340,6 +340,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
               {viewMode === 'cards' && (
                 <CourseCardsView
                   courses={courses}
+                  onView={handleEdit}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
@@ -347,6 +348,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
               {viewMode === 'compact' && (
                 <CourseCompactView
                   courses={courses}
+                  onView={handleEdit}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
@@ -354,6 +356,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
               {viewMode === 'list' && (
                 <CourseListView
                   courses={courses}
+                  onView={handleEdit}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
@@ -393,13 +396,13 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
                   </Badge>
                 )}
               </div>
-              
+
               {editingCourse && (
                 <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded mb-2">
                   ⚠️ Al importar una plantilla se <strong>reemplazarán todos los temas</strong> del curso actual
                 </p>
               )}
-              
+
               {!showTemplateSelector ? (
                 <div className="flex items-center gap-2">
                   <Button
@@ -409,7 +412,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
                     className="flex-1 justify-between bg-white"
                   >
                     <span className="text-neutral-9">
-                      {selectedTemplate 
+                      {selectedTemplate
                         ? `✓ ${selectedTemplate.name} (${selectedTemplate.topicsCount} temas)`
                         : editingCourse ? 'Importar temas de plantilla...' : 'Seleccionar plantilla...'
                       }
@@ -476,10 +479,10 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
                   </Button>
                 </div>
               )}
-              
+
               <p className="text-xs text-accent-10 mt-2">
-                💡 {editingCourse 
-                  ? 'Importa los temas de una plantilla para reemplazar el contenido actual' 
+                💡 {editingCourse
+                  ? 'Importa los temas de una plantilla para reemplazar el contenido actual'
                   : 'Selecciona una plantilla para cargar los temas automáticamente'}
               </p>
             </div>
@@ -568,7 +571,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
             <Button variant="secondary" onClick={() => setPreviewTemplate(null)}>
               Cerrar
             </Button>
-            <Button 
+            <Button
               onClick={() => {
                 if (previewTemplate) {
                   applyTemplate(previewTemplate);

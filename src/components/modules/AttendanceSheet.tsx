@@ -122,7 +122,8 @@ interface GroupSession {
   id: string;
   sessionNumber: number;
   sessionDate: string;
-  status: 'pendiente' | 'dictada';
+  status: 'pendiente' | 'dictada' | 'suspendida';
+  suspensionReason?: string | null;
   topics: SessionTopic[];
 }
 
@@ -209,7 +210,7 @@ export function AttendanceSheet({
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   // Curso seleccionado para asistencia por curso
   const [selectedCourseId, setSelectedCourseId] = useState<string>('_all_');
 
@@ -219,7 +220,7 @@ export function AttendanceSheet({
   const [actualTopic, setActualTopic] = useState('');
   const [actualDate, setActualDate] = useState('');
   const [notes, setNotes] = useState('');
-  
+
   // Observation sheet state
   const [selectedStudent, setSelectedStudent] = useState<StudentAttendance | null>(null);
   const [observationOpen, setObservationOpen] = useState(false);
@@ -274,7 +275,7 @@ export function AttendanceSheet({
       setLoading(false);
     }
   }, [session.id, session.sessionDate]);
-  
+
   // Load students with attendance (by course if selected)
   const loadStudents = useCallback(async () => {
     try {
@@ -290,7 +291,7 @@ export function AttendanceSheet({
   useEffect(() => {
     loadSessionData();
   }, [loadSessionData]);
-  
+
   // Reload students when course selection changes
   useEffect(() => {
     if (!loading) {
@@ -303,8 +304,20 @@ export function AttendanceSheet({
     if (isReadOnly) return;
 
     try {
-      const courseIdParam = selectedCourseId !== '_all_' ? selectedCourseId : undefined;
-      await api.updateAttendanceBySessionStudent(session.id, student.studentId, newStatus, courseIdParam);
+      // Cuando es "_all_", obtener todos los courseIds de los topics
+      const isAllCourses = selectedCourseId === '_all_';
+      const courseIdParam = !isAllCourses ? selectedCourseId : undefined;
+      const courseIdsParam = isAllCourses && topics.length > 0
+        ? [...new Set(topics.map(t => t.courseId))] // Unique courseIds
+        : undefined;
+
+      await api.updateAttendanceBySessionStudent(
+        session.id,
+        student.studentId,
+        newStatus,
+        courseIdParam,
+        courseIdsParam
+      );
 
       // Update local state
       setStudents((prev) =>
@@ -338,27 +351,7 @@ export function AttendanceSheet({
         prev.map((s) =>
           s.attendanceId === selectedStudent.attendanceId
             ? {
-                ...s,
-                observations: [
-                  {
-                    id: result.data.id,
-                    content: result.data.content,
-                    createdAt: result.data.createdAt,
-                    userId: result.data.userId,
-                    userName: result.data.userName,
-                  },
-                  ...s.observations,
-                ],
-              }
-            : s
-        )
-      );
-
-      // Update selected student
-      setSelectedStudent((prev) =>
-        prev
-          ? {
-              ...prev,
+              ...s,
               observations: [
                 {
                   id: result.data.id,
@@ -367,9 +360,29 @@ export function AttendanceSheet({
                   userId: result.data.userId,
                   userName: result.data.userName,
                 },
-                ...prev.observations,
+                ...s.observations,
               ],
             }
+            : s
+        )
+      );
+
+      // Update selected student
+      setSelectedStudent((prev) =>
+        prev
+          ? {
+            ...prev,
+            observations: [
+              {
+                id: result.data.id,
+                content: result.data.content,
+                createdAt: result.data.createdAt,
+                userId: result.data.userId,
+                userName: result.data.userName,
+              },
+              ...prev.observations,
+            ],
+          }
           : null
       );
 
@@ -728,7 +741,7 @@ export function AttendanceSheet({
                 Registra la asistencia de cada estudiante
               </CardDescription>
             </div>
-            
+
             {/* Selector de curso para asistencia por curso */}
             {topics.length > 1 && (
               <div className="flex items-center gap-2">

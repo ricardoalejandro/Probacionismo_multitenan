@@ -495,12 +495,25 @@ class ApiClient {
     return response.data;
   }
 
-  // Update or create attendance by session, student, and optionally course
-  async updateAttendanceBySessionStudent(sessionId: string, studentId: string, status: string, courseId?: string) {
-    const response = await this.client.put(`/attendance/sessions/${sessionId}/students/${studentId}`, {
-      status,
-      courseId: courseId || null,
-    });
+  // Update or create attendance by session, student, and optionally course(s)
+  async updateAttendanceBySessionStudent(
+    sessionId: string,
+    studentId: string,
+    status: string,
+    courseId?: string,
+    courseIds?: string[]
+  ) {
+    const body: { status: string; courseId?: string | null; courseIds?: string[] } = { status };
+
+    if (courseIds && courseIds.length > 0) {
+      // Se envían múltiples courseIds (modo "todos los cursos")
+      body.courseIds = courseIds;
+    } else if (courseId) {
+      // Se envía un courseId específico
+      body.courseId = courseId;
+    }
+
+    const response = await this.client.put(`/attendance/sessions/${sessionId}/students/${studentId}`, body);
     return response.data;
   }
 
@@ -568,6 +581,18 @@ class ApiClient {
     return response.data;
   }
 
+  // Postpone/suspend session (mark as no class happened)
+  async postponeSession(sessionId: string, reason: string) {
+    const response = await this.client.put(`/attendance/sessions/${sessionId}/postpone`, { reason });
+    return response.data;
+  }
+
+  // Reactivate suspended session (change to pending)
+  async reactivateSession(sessionId: string) {
+    const response = await this.client.put(`/attendance/sessions/${sessionId}/reactivate`);
+    return response.data;
+  }
+
   // Get calendar view
   async getAttendanceCalendar(groupId: string, month?: number, year?: number) {
     const response = await this.client.get(`/attendance/calendar/${groupId}`, {
@@ -582,7 +607,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Get attendance notebook (matrix view)
   async getAttendanceNotebook(groupId: string, params?: {
     startDate?: string;
     endDate?: string;
@@ -595,6 +619,54 @@ class ApiClient {
     courseId?: string;
   }) {
     const response = await this.client.get(`/attendance/notebook/${groupId}`, { params });
+    return response.data;
+  }
+
+  // ============================================
+  // TRANSFERS API
+  // ============================================
+
+  // Get transfers for a branch
+  async getTransfers(branchId: string, type: 'incoming' | 'outgoing' | 'all' = 'all', status: string = 'all') {
+    const response = await this.client.get('/transfers', { params: { branchId, type, status } });
+    return response.data;
+  }
+
+  // Create transfer
+  async createTransfer(data: {
+    studentId: string;
+    targetBranchId: string;
+    transferType: 'outgoing' | 'incoming';
+    reason?: string;
+    notes?: string;
+  }) {
+    const response = await this.client.post('/transfers', data);
+    return response.data;
+  }
+
+  // Accept transfer
+  async acceptTransfer(transferId: string) {
+    const response = await this.client.put(`/transfers/${transferId}/accept`);
+    return response.data;
+  }
+
+  // Reject transfer
+  async rejectTransfer(transferId: string, reason?: string) {
+    const response = await this.client.put(`/transfers/${transferId}/reject`, { reason });
+    return response.data;
+  }
+
+  // Cancel transfer
+  async cancelTransfer(transferId: string) {
+    const response = await this.client.put(`/transfers/${transferId}/cancel`);
+    return response.data;
+  }
+
+  // Search student globally by DNI
+  async searchStudentGlobal(dni: string, excludeBranchId?: string) {
+    const response = await this.client.get('/transfers/search-student', {
+      params: { dni, excludeBranchId }
+    });
     return response.data;
   }
 }

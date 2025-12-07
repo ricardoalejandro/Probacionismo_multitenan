@@ -83,12 +83,12 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-  
+
   // Filtros
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [groupFilter, setGroupFilter] = useState<string>('');
   const [availableGroups, setAvailableGroups] = useState<GroupForFilter[]>([]);
-  
+
   const [formData, setFormData] = useState({
     documentType: 'DNI',
     dni: '',
@@ -452,6 +452,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
               {viewMode === 'cards' && (
                 <StudentModuleCardsView
                   students={students}
+                  onView={handleEdit}
                   onEdit={handleEdit}
                   onChangeStatus={(student) => {
                     setSelectedStudentForAction(student);
@@ -470,6 +471,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
               {viewMode === 'compact' && (
                 <StudentModuleCompactView
                   students={students}
+                  onView={handleEdit}
                   onEdit={handleEdit}
                   onChangeStatus={(student) => {
                     setSelectedStudentForAction(student);
@@ -488,6 +490,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
               {viewMode === 'list' && (
                 <StudentModuleListView
                   students={students}
+                  onView={handleEdit}
                   onEdit={handleEdit}
                   onChangeStatus={(student) => {
                     setSelectedStudentForAction(student);

@@ -16,6 +16,7 @@ export const frequencyEnum = pgEnum('frequency', ['Diario', 'Semanal', 'Mensual'
 export const dayEnum = pgEnum('day', ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']);
 export const attendanceStatusEnum = pgEnum('attendance_status', ['Presente', 'Ausente', 'Tardanza', 'Justificado']);
 export const counselingIndicatorEnum = pgEnum('counseling_indicator', ['frio', 'tibio', 'caliente']);
+export const transferStatusEnum = pgEnum('transfer_status', ['pending', 'accepted', 'rejected', 'cancelled', 'expired']);
 
 // Tables
 // Sistema de autenticación y usuarios
@@ -243,7 +244,8 @@ export const groupSessions = pgTable('group_sessions', {
   groupId: uuid('group_id').notNull().references(() => classGroups.id, { onDelete: 'cascade' }),
   sessionNumber: integer('session_number').notNull(),
   sessionDate: date('session_date').notNull(),
-  status: text('status').notNull().default('pendiente'), // 'pendiente' | 'dictada'
+  status: text('status').notNull().default('pendiente'), // 'pendiente' | 'dictada' | 'suspendida'
+  suspensionReason: text('suspension_reason'), // Razón por la que se suspendió la sesión
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -295,6 +297,7 @@ export const roles = pgTable('roles', {
   name: text('name').notNull().unique(),
   description: text('description'),
   isSystemRole: boolean('is_system_role').notNull().default(false),
+  canManageTransfers: boolean('can_manage_transfers').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -529,3 +532,43 @@ export const sessionExecution = pgTable('session_execution', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// ============================================
+// MÓDULO DE TRASLADOS
+// ============================================
+
+// Tabla: student_transfers (Traslados entre filiales)
+export const studentTransfers = pgTable('student_transfers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  studentId: uuid('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  // Filial origen (quien envía o de donde se solicita)
+  sourceBranchId: uuid('source_branch_id').notNull().references(() => branches.id, { onDelete: 'restrict' }),
+  // Filial destino (quien recibe o quien solicita)
+  targetBranchId: uuid('target_branch_id').notNull().references(() => branches.id, { onDelete: 'restrict' }),
+  // Estado del traslado
+  status: transferStatusEnum('status').notNull().default('pending'),
+  // Tipo: 'outgoing' = filial origen envía, 'incoming' = filial destino solicita
+  transferType: text('transfer_type').notNull(), // 'outgoing' | 'incoming'
+  // Motivo del traslado
+  reason: text('reason'),
+  // Notas adicionales
+  notes: text('notes'),
+  // Usuario que creó el traslado
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  // Usuario que procesó (aceptó/rechazó) el traslado
+  processedBy: uuid('processed_by').references(() => users.id, { onDelete: 'set null' }),
+  processedAt: timestamp('processed_at'),
+  // Razón de rechazo (si aplica)
+  rejectionReason: text('rejection_reason'),
+  // Fecha de expiración (7 días después de creación)
+  expiresAt: timestamp('expires_at').notNull(),
+  // Grupos de los que fue removido al aceptar (JSON array de group IDs)
+  removedFromGroups: text('removed_from_groups'), // JSON stringified array
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  idxTransfersStudent: index('idx_transfers_student').on(table.studentId),
+  idxTransfersSource: index('idx_transfers_source_branch').on(table.sourceBranchId),
+  idxTransfersTarget: index('idx_transfers_target_branch').on(table.targetBranchId),
+  idxTransfersStatus: index('idx_transfers_status').on(table.status),
+}));

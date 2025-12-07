@@ -16,6 +16,9 @@ import {
   Timer,
   GitGraph,
   BookOpen,
+  RotateCcw,
+  PauseCircle,
+  PlayCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -24,6 +27,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { AttendanceSheet } from './AttendanceSheet';
@@ -59,7 +66,8 @@ interface GroupSession {
   id: string;
   sessionNumber: number;
   sessionDate: string;
-  status: 'pendiente' | 'dictada';
+  status: 'pendiente' | 'dictada' | 'suspendida';
+  suspensionReason?: string | null;
   topics: SessionTopic[];
   hasExecution: boolean;
 }
@@ -96,6 +104,24 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
   const [loading, setLoading] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [showAttendanceSheet, setShowAttendanceSheet] = useState(false);
+
+  // Suspension dialog state
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [sessionToSuspend, setSessionToSuspend] = useState<GroupSession | null>(null);
+  const [suspendReason, setSuspendReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
+  const [suspending, setSuspending] = useState(false);
+
+  // Predefined suspension reasons
+  const SUSPENSION_REASONS = [
+    { value: 'feriado', label: 'Feriado no programado' },
+    { value: 'clima', label: 'Condiciones climáticas' },
+    { value: 'luz', label: 'Corte de luz' },
+    { value: 'agua', label: 'Corte de agua' },
+    { value: 'instructor', label: 'Instructor ausente' },
+    { value: 'local', label: 'Local no disponible' },
+    { value: 'otro', label: 'Otro (especificar)' },
+  ];
 
   // Load groups
   const loadGroups = useCallback(async () => {
@@ -182,6 +208,82 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
     loadPendingSessions();
     setSelectedSession(null);
     setShowAttendanceSheet(false);
+  };
+
+  // Handle reopen session from any view
+  const handleReopenSession = async (session: GroupSession) => {
+    try {
+      await api.reopenSession(session.id);
+      toast.success('Sesión reabierta. Ahora puede editar la asistencia.');
+      // Reload sessions to reflect the change
+      if (selectedGroup) {
+        loadSessions(selectedGroup.id);
+      }
+      loadGroups();
+      loadPendingSessions();
+    } catch (error) {
+      console.error('Error reopening session:', error);
+      toast.error('Error al reabrir la sesión');
+    }
+  };
+
+  // Open suspend dialog
+  const handleSuspendSession = (session: GroupSession) => {
+    setSessionToSuspend(session);
+    setSuspendReason('');
+    setCustomReason('');
+    setSuspendDialogOpen(true);
+  };
+
+  // Confirm suspension
+  const confirmSuspendSession = async () => {
+    if (!sessionToSuspend) return;
+
+    const finalReason = suspendReason === 'otro'
+      ? customReason
+      : SUSPENSION_REASONS.find(r => r.value === suspendReason)?.label || suspendReason;
+
+    if (!finalReason || finalReason.trim().length < 3) {
+      toast.error('Debe especificar una razón para suspender');
+      return;
+    }
+
+    try {
+      setSuspending(true);
+      await api.postponeSession(sessionToSuspend.id, finalReason);
+      toast.success('Sesión suspendida exitosamente');
+      setSuspendDialogOpen(false);
+      setSessionToSuspend(null);
+
+      // Reload sessions to reflect the change
+      if (selectedGroup) {
+        loadSessions(selectedGroup.id);
+      }
+      loadGroups();
+      loadPendingSessions();
+    } catch (error: any) {
+      console.error('Error suspending session:', error);
+      toast.error(error.response?.data?.error || 'Error al suspender la sesión');
+    } finally {
+      setSuspending(false);
+    }
+  };
+
+  // Reactivate suspended session
+  const handleReactivateSession = async (session: GroupSession) => {
+    try {
+      await api.reactivateSession(session.id);
+      toast.success('Sesión reactivada. Ahora puede registrar asistencia.');
+
+      if (selectedGroup) {
+        loadSessions(selectedGroup.id);
+      }
+      loadGroups();
+      loadPendingSessions();
+    } catch (error: any) {
+      console.error('Error reactivating session:', error);
+      toast.error(error.response?.data?.error || 'Error al reactivar la sesión');
+    }
   };
 
   const handleOpenPendingSession = (pending: PendingSession) => {
@@ -293,21 +395,33 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
           <SessionListView
             sessions={sessions}
             onSelectSession={handleSelectSession}
+            onReopenSession={handleReopenSession}
+            onSuspendSession={handleSuspendSession}
+            onReactivateSession={handleReactivateSession}
           />
         ) : viewMode === 'calendar' ? (
           <SessionCalendarView
             sessions={sessions}
             onSelectSession={handleSelectSession}
+            onReopenSession={handleReopenSession}
+            onSuspendSession={handleSuspendSession}
+            onReactivateSession={handleReactivateSession}
           />
         ) : viewMode === 'pending' ? (
           <SessionPendingView
             sessions={sessions.filter((s) => s.status === 'pendiente')}
             onSelectSession={handleSelectSession}
+            onReopenSession={handleReopenSession}
+            onSuspendSession={handleSuspendSession}
+            onReactivateSession={handleReactivateSession}
           />
         ) : (
           <SessionTimelineView
             sessions={sessions}
             onSelectSession={handleSelectSession}
+            onReopenSession={handleReopenSession}
+            onSuspendSession={handleSuspendSession}
+            onReactivateSession={handleReactivateSession}
           />
         )}
       </div>
@@ -434,6 +548,82 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
           ))}
         </div>
       )}
+
+      {/* Suspension Dialog */}
+      <Dialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PauseCircle className="h-5 w-5 text-purple-600" />
+              Suspender Sesión
+            </DialogTitle>
+            <DialogDescription>
+              {sessionToSuspend && (
+                <>
+                  Sesión #{sessionToSuspend.sessionNumber} - {formatSessionDate(sessionToSuspend.sessionDate, {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                  })}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reason">¿Por qué se suspende la sesión?</Label>
+              <Select value={suspendReason} onValueChange={setSuspendReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione una razón..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUSPENSION_REASONS.map((reason) => (
+                    <SelectItem key={reason.value} value={reason.value}>
+                      {reason.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {suspendReason === 'otro' && (
+              <div className="space-y-2">
+                <Label htmlFor="customReason">Especifique la razón</Label>
+                <Input
+                  id="customReason"
+                  value={customReason}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  placeholder="Ej: Problemas con el local..."
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSuspendDialogOpen(false)} disabled={suspending}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmSuspendSession}
+              disabled={suspending || !suspendReason || (suspendReason === 'otro' && !customReason.trim())}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {suspending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Suspendiendo...
+                </>
+              ) : (
+                <>
+                  <PauseCircle className="h-4 w-4 mr-2" />
+                  Suspender Sesión
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -499,9 +689,15 @@ function GroupCard({
 function SessionListView({
   sessions,
   onSelectSession,
+  onReopenSession,
+  onSuspendSession,
+  onReactivateSession,
 }: {
   sessions: GroupSession[];
   onSelectSession: (session: GroupSession) => void;
+  onReopenSession: (session: GroupSession) => void;
+  onSuspendSession: (session: GroupSession) => void;
+  onReactivateSession: (session: GroupSession) => void;
 }) {
   const today = new Date().toISOString().split('T')[0];
 
@@ -510,6 +706,7 @@ function SessionListView({
       {sessions.map((session) => {
         const isPast = session.sessionDate < today;
         const isToday = session.sessionDate === today;
+        const isSuspended = session.status === 'suspendida';
 
         return (
           <Card
@@ -517,10 +714,11 @@ function SessionListView({
             className={cn(
               'cursor-pointer transition-all hover:shadow-md',
               session.status === 'dictada' && 'bg-green-50 dark:bg-green-950/20 border-green-200',
+              isSuspended && 'bg-purple-50 dark:bg-purple-950/20 border-purple-200',
               session.status === 'pendiente' && isPast && 'bg-amber-50 dark:bg-amber-950/20 border-amber-200',
               isToday && session.status === 'pendiente' && 'ring-2 ring-primary ring-offset-2'
             )}
-            onClick={() => onSelectSession(session)}
+            onClick={() => !isSuspended && onSelectSession(session)}
           >
             <CardContent className="py-4">
               <div className="flex items-center justify-between">
@@ -531,12 +729,14 @@ function SessionListView({
                       'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg',
                       session.status === 'dictada'
                         ? 'bg-green-100 text-green-700'
-                        : isPast
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-gray-100 text-gray-700'
+                        : isSuspended
+                          ? 'bg-purple-100 text-purple-700'
+                          : isPast
+                            ? 'bg-amber-100 text-amber-700'
+                            : 'bg-gray-100 text-gray-700'
                     )}
                   >
-                    {session.sessionNumber}
+                    {isSuspended ? <PauseCircle className="h-6 w-6" /> : session.sessionNumber}
                   </div>
 
                   <div>
@@ -544,6 +744,9 @@ function SessionListView({
                       <p className="font-medium">Sesión #{session.sessionNumber}</p>
                       {session.status === 'dictada' && (
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      )}
+                      {isSuspended && (
+                        <PauseCircle className="h-4 w-4 text-purple-600" />
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -554,7 +757,12 @@ function SessionListView({
                         year: 'numeric',
                       })}
                     </p>
-                    {session.topics.length > 0 && (
+                    {isSuspended && session.suspensionReason && (
+                      <p className="text-sm text-purple-600 mt-1">
+                        Razón: {session.suspensionReason}
+                      </p>
+                    )}
+                    {!isSuspended && session.topics.length > 0 && (
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
                         {session.topics.map((t) => t.topicTitle).join(' • ')}
                       </p>
@@ -562,21 +770,70 @@ function SessionListView({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {session.status === 'dictada' ? (
-                    <Badge className="bg-green-600">Dictada</Badge>
-                  ) : isPast ? (
-                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300">
-                      Por registrar
-                    </Badge>
-                  ) : isToday ? (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-300">
-                      Hoy
-                    </Badge>
+                    <>
+                      <Badge className="bg-green-600">Dictada</Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          onReopenSession(session);
+                        }}
+                        title="Reabrir sesión"
+                        className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-1" />
+                        Reabrir
+                      </Button>
+                    </>
+                  ) : isSuspended ? (
+                    <>
+                      <Badge className="bg-purple-600">Suspendida</Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          onReactivateSession(session);
+                        }}
+                        title="Reactivar sesión"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <PlayCircle className="h-4 w-4 mr-1" />
+                        Reactivar
+                      </Button>
+                    </>
                   ) : (
-                    <Badge variant="secondary">Programada</Badge>
+                    <>
+                      {isPast ? (
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300">
+                          Por registrar
+                        </Badge>
+                      ) : isToday ? (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-300">
+                          Hoy
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Programada</Badge>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          onSuspendSession(session);
+                        }}
+                        title="Suspender sesión"
+                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                      >
+                        <PauseCircle className="h-4 w-4 mr-1" />
+                        Suspender
+                      </Button>
+                    </>
                   )}
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  {!isSuspended && <ChevronRight className="h-5 w-5 text-muted-foreground" />}
                 </div>
               </div>
             </CardContent>
@@ -606,9 +863,15 @@ function SessionListView({
 function SessionCalendarView({
   sessions,
   onSelectSession,
+  onReopenSession,
+  onSuspendSession,
+  onReactivateSession,
 }: {
   sessions: GroupSession[];
   onSelectSession: (session: GroupSession) => void;
+  onReopenSession: (session: GroupSession) => void;
+  onSuspendSession: (session: GroupSession) => void;
+  onReactivateSession: (session: GroupSession) => void;
 }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
@@ -744,9 +1007,15 @@ function SessionCalendarView({
 function SessionPendingView({
   sessions,
   onSelectSession,
+  onReopenSession,
+  onSuspendSession,
+  onReactivateSession,
 }: {
   sessions: GroupSession[];
   onSelectSession: (session: GroupSession) => void;
+  onReopenSession: (session: GroupSession) => void;
+  onSuspendSession: (session: GroupSession) => void;
+  onReactivateSession: (session: GroupSession) => void;
 }) {
   const today = new Date().toISOString().split('T')[0];
 
@@ -769,7 +1038,7 @@ function SessionPendingView({
             const isToday = session.sessionDate === today;
             const daysOverdue = Math.floor(
               (parseDate(today).getTime() - parseDate(session.sessionDate).getTime()) /
-                (1000 * 60 * 60 * 24)
+              (1000 * 60 * 60 * 24)
             );
 
             return (
@@ -886,9 +1155,15 @@ function SessionPendingView({
 function SessionTimelineView({
   sessions,
   onSelectSession,
+  onReopenSession,
+  onSuspendSession,
+  onReactivateSession,
 }: {
   sessions: GroupSession[];
   onSelectSession: (session: GroupSession) => void;
+  onReopenSession: (session: GroupSession) => void;
+  onSuspendSession: (session: GroupSession) => void;
+  onReactivateSession: (session: GroupSession) => void;
 }) {
   const today = new Date().toISOString().split('T')[0];
 
@@ -915,10 +1190,10 @@ function SessionTimelineView({
                   session.status === 'dictada'
                     ? 'bg-green-500'
                     : isPast
-                    ? 'bg-amber-500'
-                    : isToday
-                    ? 'bg-blue-500'
-                    : 'bg-gray-300'
+                      ? 'bg-amber-500'
+                      : isToday
+                        ? 'bg-blue-500'
+                        : 'bg-gray-300'
                 )}
               />
 
@@ -948,25 +1223,41 @@ function SessionTimelineView({
                       </p>
                     </div>
 
-                    {session.status === 'dictada' ? (
-                      <Badge className="bg-green-600">Dictada</Badge>
-                    ) : isPast ? (
-                      <Badge
-                        variant="secondary"
-                        className="bg-amber-100 text-amber-700 border-amber-300"
-                      >
-                        Por registrar
-                      </Badge>
-                    ) : isToday ? (
-                      <Badge
-                        variant="secondary"
-                        className="bg-blue-100 text-blue-700 border-blue-300"
-                      >
-                        Hoy
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Programada</Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {session.status === 'dictada' ? (
+                        <>
+                          <Badge className="bg-green-600">Dictada</Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation();
+                              onReopenSession(session);
+                            }}
+                            title="Reabrir sesión"
+                            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 h-7 px-2"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      ) : isPast ? (
+                        <Badge
+                          variant="secondary"
+                          className="bg-amber-100 text-amber-700 border-amber-300"
+                        >
+                          Por registrar
+                        </Badge>
+                      ) : isToday ? (
+                        <Badge
+                          variant="secondary"
+                          className="bg-blue-100 text-blue-700 border-blue-300"
+                        >
+                          Hoy
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">Programada</Badge>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

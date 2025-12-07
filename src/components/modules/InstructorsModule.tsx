@@ -321,6 +321,7 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
               {viewMode === 'cards' && (
                 <InstructorCardsView
                   instructors={instructors}
+                  onView={handleEdit}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
@@ -328,6 +329,7 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
               {viewMode === 'compact' && (
                 <InstructorCompactView
                   instructors={instructors}
+                  onView={handleEdit}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
@@ -335,6 +337,7 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
               {viewMode === 'list' && (
                 <InstructorListView
                   instructors={instructors}
+                  onView={handleEdit}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />

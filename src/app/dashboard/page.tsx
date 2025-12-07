@@ -219,16 +219,18 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex items-center gap-4">
-                {/* Toggle mostrar inactivas */}
-                <label className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={showInactive}
-                    onChange={(e) => setShowInactive(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-accent-9 focus:ring-accent-9 focus:ring-offset-2"
-                  />
-                  <span className="text-sm text-gray-600 group-hover:text-gray-900">Mostrar inactivas</span>
-                </label>
+                {/* Toggle mostrar inactivas - solo para admins */}
+                {user?.userType === 'admin' && (
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={showInactive}
+                      onChange={(e) => setShowInactive(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-accent-9 focus:ring-accent-9 focus:ring-offset-2"
+                    />
+                    <span className="text-sm text-gray-600 group-hover:text-gray-900">Mostrar inactivas</span>
+                  </label>
+                )}
 
                 {/* Selector de vista */}
                 <div className="flex gap-1 bg-white p-1 rounded-lg border border-gray-200">

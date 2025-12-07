@@ -8,6 +8,7 @@ import { z } from 'zod';
 const roleSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   description: z.string().optional(),
+  canManageTransfers: z.boolean().optional().default(false),
   permissions: z.array(z.object({
     module: z.enum(['students', 'courses', 'instructors', 'groups', 'attendance', 'counseling', 'enrollments']),
     canView: z.boolean(),
@@ -18,7 +19,7 @@ const roleSchema = z.object({
 });
 
 export const roleRoutes: FastifyPluginAsync = async (fastify) => {
-  
+
   // GET /api/roles - Listar todos los roles
   fastify.get('/', {
     onRequest: [fastify.authenticate],
@@ -111,6 +112,7 @@ export const roleRoutes: FastifyPluginAsync = async (fastify) => {
           name: data.name,
           description: data.description,
           isSystemRole: false,
+          canManageTransfers: data.canManageTransfers || false,
         })
         .returning();
 
@@ -190,6 +192,7 @@ export const roleRoutes: FastifyPluginAsync = async (fastify) => {
         .set({
           name: data.name,
           description: data.description,
+          canManageTransfers: data.canManageTransfers || false,
           updatedAt: new Date(),
         })
         .where(eq(roles.id, id));
@@ -260,7 +263,7 @@ export const roleRoutes: FastifyPluginAsync = async (fastify) => {
       return { message: 'Rol eliminado correctamente' };
     } catch (error: any) {
       if (error.code === '23503') { // FK violation
-        return reply.code(400).send({ 
+        return reply.code(400).send({
           error: 'No se puede eliminar el rol porque hay usuarios asignados a él',
           details: 'Reasigna los usuarios a otro rol antes de eliminar'
         });

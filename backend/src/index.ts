@@ -25,6 +25,7 @@ import googleAuthRoutes from './routes/googleAuth';
 import { locationRoutes } from './routes/locations';
 import { levelRoutes } from './routes/levels';
 import { holidayRoutes } from './routes/holidays';
+import { transferRoutes } from './routes/transfers';
 
 // Extend Fastify types
 declare module 'fastify' {
@@ -161,6 +162,7 @@ async function start() {
   await fastify.register(locationRoutes, { prefix: '/api' });
   await fastify.register(levelRoutes, { prefix: '/api/levels' });
   await fastify.register(holidayRoutes, { prefix: '/api/holidays' });
+  await fastify.register(transferRoutes, { prefix: '/api/transfers' });
 
   // Start server
   try {

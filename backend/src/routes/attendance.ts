@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { db } from '../db';
-import { 
+import {
   groupSessions, groupSessionTopics, sessionAttendance, attendanceObservations,
   sessionExecution, classGroups, groupEnrollments, students, instructors,
   groupAssistants, courses, users
@@ -34,15 +34,15 @@ const completeSessionSchema = z.object({
 });
 
 export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
-  
+
   // ============================================
   // GRUPOS - Lista de grupos para selección
   // ============================================
-  
+
   // GET /api/attendance/groups - Listar grupos activos con info de sesiones
   fastify.get('/groups', async (request, reply) => {
     const { branchId } = request.query as { branchId?: string };
-    
+
     if (!branchId) {
       return reply.status(400).send({ error: 'branchId es requerido' });
     }
@@ -69,7 +69,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
     const groupsWithStats = await Promise.all(
       groups.map(async (group) => {
         const sessionsCount = await db
-          .select({ 
+          .select({
             total: sql<number>`count(*)`,
             dictadas: sql<number>`count(*) filter (where ${groupSessions.status} = 'dictada')`,
             pendientes: sql<number>`count(*) filter (where ${groupSessions.status} = 'pendiente')`,
@@ -108,7 +108,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
     const { status } = request.query as { status?: 'pendiente' | 'dictada' | 'all' };
 
     let whereConditions = [eq(groupSessions.groupId, groupId)];
-    
+
     if (status && status !== 'all') {
       whereConditions.push(eq(groupSessions.status, status));
     }
@@ -168,7 +168,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/attendance/pending - Sesiones pendientes de registrar
   fastify.get('/pending', async (request, reply) => {
     const { branchId } = request.query as { branchId?: string };
-    
+
     if (!branchId) {
       return reply.status(400).send({ error: 'branchId es requerido' });
     }
@@ -200,7 +200,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
       const todayDate = new Date(today);
       const diffTime = todayDate.getTime() - sessionDate.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      
+
       return {
         ...session,
         daysOverdue: diffDays,
@@ -208,7 +208,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
       };
     });
 
-    return { 
+    return {
       data: sessionsWithDelay,
       total: sessionsWithDelay.length,
     };
@@ -278,10 +278,10 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
     // Obtener nombres si hay ejecución
     let executionWithNames = null;
     if (execution) {
-      const [instructor] = execution.actualInstructorId 
+      const [instructor] = execution.actualInstructorId
         ? await db.select({ fullName: sql<string>`${instructors.firstName} || ' ' || ${instructors.paternalLastName}` }).from(instructors).where(eq(instructors.id, execution.actualInstructorId)).limit(1)
         : [null];
-      
+
       const [assistant] = execution.actualAssistantId
         ? await db.select({ fullName: groupAssistants.fullName }).from(groupAssistants).where(eq(groupAssistants.id, execution.actualAssistantId)).limit(1)
         : [null];
@@ -359,12 +359,12 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
           eq(sessionAttendance.sessionId, sessionId),
           eq(sessionAttendance.studentId, student.studentId)
         ];
-        
+
         // Si se especifica courseId, buscar por ese curso específico
         if (courseId) {
           whereConditions.push(eq(sessionAttendance.courseId, courseId));
         }
-        
+
         // Buscar o crear registro de asistencia
         let [attendance] = await db
           .select({
@@ -427,7 +427,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
   // - courseIds: Array de UUIDs cuando se aplica a múltiples cursos
   fastify.put('/sessions/:sessionId/students/:studentId', async (request, reply) => {
     const { sessionId, studentId } = request.params as { sessionId: string; studentId: string };
-    
+
     try {
       const validatedData = updateAttendanceSchema.parse(request.body);
 
@@ -448,7 +448,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Determinar los cursos a actualizar
       let courseIdsToUpdate: string[] = [];
-      
+
       if (validatedData.courseIds && validatedData.courseIds.length > 0) {
         // Se proporcionó un array de courseIds (modo "todos los cursos")
         courseIdsToUpdate = validatedData.courseIds;
@@ -458,13 +458,13 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
       } else {
         // Si no hay courseId o es '_all_', necesitamos obtener los cursos del grupo
         // Este caso no debería pasar si el frontend envía courseIds correctamente
-        return reply.status(400).send({ 
-          error: 'Debe especificar courseId o courseIds. La asistencia debe estar asociada a un curso.' 
+        return reply.status(400).send({
+          error: 'Debe especificar courseId o courseIds. La asistencia debe estar asociada a un curso.'
         });
       }
 
       const results = [];
-      
+
       for (const courseId of courseIdsToUpdate) {
         // Buscar si ya existe un registro de asistencia para este curso
         const [existingAttendance] = await db
@@ -482,7 +482,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
           // Actualizar registro existente
           [result] = await db
             .update(sessionAttendance)
-            .set({ 
+            .set({
               status: validatedData.status,
               updatedAt: new Date(),
             })
@@ -515,7 +515,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
   // PUT /api/attendance/students/:attendanceId - Actualizar estado de asistencia
   fastify.put('/students/:attendanceId', async (request, reply) => {
     const { attendanceId } = request.params as { attendanceId: string };
-    
+
     try {
       const validatedData = updateAttendanceSchema.parse(request.body);
 
@@ -542,7 +542,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
 
       const [updated] = await db
         .update(sessionAttendance)
-        .set({ 
+        .set({
           status: validatedData.status,
           updatedAt: new Date(),
         })
@@ -565,7 +565,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/attendance/students/:attendanceId/observations - Agregar observación
   fastify.post('/students/:attendanceId/observations', async (request, reply) => {
     const { attendanceId } = request.params as { attendanceId: string };
-    
+
     try {
       const validatedData = addObservationSchema.parse(request.body);
 
@@ -600,8 +600,8 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
         userName = user?.fullName;
       }
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         data: {
           ...observation,
           userName,
@@ -642,7 +642,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
   // PUT /api/attendance/sessions/:sessionId/execution - Actualizar ejecución real
   fastify.put('/sessions/:sessionId/execution', async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string };
-    
+
     try {
       const validatedData = updateExecutionSchema.parse(request.body);
 
@@ -714,13 +714,13 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
   // PUT /api/attendance/sessions/:sessionId/complete - Marcar sesión como dictada
   fastify.put('/sessions/:sessionId/complete', async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string };
-    
+
     try {
       const validatedData = completeSessionSchema.parse(request.body);
 
       // Verificar que la sesión exista y no esté ya dictada
       const [session] = await db
-        .select({ 
+        .select({
           status: groupSessions.status,
           sessionDate: groupSessions.sessionDate,
           groupId: groupSessions.groupId,
@@ -756,15 +756,15 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
       // Marcar sesión como dictada
       const [updated] = await db
         .update(groupSessions)
-        .set({ 
+        .set({
           status: 'dictada',
           updatedAt: new Date(),
         })
         .where(eq(groupSessions.id, sessionId))
         .returning();
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         message: 'Sesión marcada como dictada exitosamente',
         data: updated,
       };
@@ -779,11 +779,11 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
   // PUT /api/attendance/sessions/:sessionId/reopen - Reabrir sesión (cambiar de dictada a pendiente)
   fastify.put('/sessions/:sessionId/reopen', async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string };
-    
+
     try {
       // Verificar que la sesión exista y esté dictada
       const [session] = await db
-        .select({ 
+        .select({
           status: groupSessions.status,
         })
         .from(groupSessions)
@@ -801,16 +801,111 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
       // Reabrir sesión (cambiar a pendiente)
       const [updated] = await db
         .update(groupSessions)
-        .set({ 
+        .set({
           status: 'pendiente',
           updatedAt: new Date(),
         })
         .where(eq(groupSessions.id, sessionId))
         .returning();
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         message: 'Sesión reabierta exitosamente. Ahora puede editar la asistencia.',
+        data: updated,
+      };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  // PUT /api/attendance/sessions/:sessionId/postpone - Suspender sesión (marcar que no hubo clase)
+  fastify.put('/sessions/:sessionId/postpone', async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string };
+    const { reason } = request.body as { reason: string };
+
+    try {
+      if (!reason || reason.trim().length < 3) {
+        return reply.status(400).send({ error: 'Debe especificar una razón para suspender la sesión (mínimo 3 caracteres)' });
+      }
+
+      // Verificar que la sesión exista y esté pendiente
+      const [session] = await db
+        .select({
+          status: groupSessions.status,
+        })
+        .from(groupSessions)
+        .where(eq(groupSessions.id, sessionId))
+        .limit(1);
+
+      if (!session) {
+        return reply.status(404).send({ error: 'Sesión no encontrada' });
+      }
+
+      if (session.status === 'dictada') {
+        return reply.status(400).send({ error: 'No se puede suspender una sesión que ya fue dictada. Reábrala primero.' });
+      }
+
+      if (session.status === 'suspendida') {
+        return reply.status(400).send({ error: 'La sesión ya está marcada como suspendida' });
+      }
+
+      // Marcar sesión como suspendida
+      const [updated] = await db
+        .update(groupSessions)
+        .set({
+          status: 'suspendida',
+          suspensionReason: reason.trim(),
+          updatedAt: new Date(),
+        })
+        .where(eq(groupSessions.id, sessionId))
+        .returning();
+
+      return {
+        success: true,
+        message: 'Sesión suspendida exitosamente',
+        data: updated,
+      };
+    } catch (error) {
+      throw error;
+    }
+  });
+
+  // PUT /api/attendance/sessions/:sessionId/reactivate - Reactivar sesión suspendida (volver a pendiente)
+  fastify.put('/sessions/:sessionId/reactivate', async (request, reply) => {
+    const { sessionId } = request.params as { sessionId: string };
+
+    try {
+      // Verificar que la sesión exista y esté suspendida
+      const [session] = await db
+        .select({
+          status: groupSessions.status,
+        })
+        .from(groupSessions)
+        .where(eq(groupSessions.id, sessionId))
+        .limit(1);
+
+      if (!session) {
+        return reply.status(404).send({ error: 'Sesión no encontrada' });
+      }
+
+      if (session.status !== 'suspendida') {
+        return reply.status(400).send({ error: 'La sesión no está suspendida' });
+      }
+
+      // Reactivar sesión (cambiar a pendiente y limpiar razón)
+      const [updated] = await db
+        .update(groupSessions)
+        .set({
+          status: 'pendiente',
+          suspensionReason: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(groupSessions.id, sessionId))
+        .returning();
+
+      return {
+        success: true,
+        message: 'Sesión reactivada exitosamente',
         data: updated,
       };
     } catch (error) {
@@ -850,7 +945,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
       ))
       .orderBy(asc(groupSessions.sessionDate));
 
-    return { 
+    return {
       data: sessions,
       month: targetMonth,
       year: targetYear,
@@ -882,18 +977,18 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/attendance/notebook/:groupId - Matriz de asistencia completa
   fastify.get('/notebook/:groupId', async (request, reply) => {
     const { groupId } = request.params as { groupId: string };
-    const { 
-      startDate, 
-      endDate, 
-      page = '1', 
+    const {
+      startDate,
+      endDate,
+      page = '1',
       sessionsPerPage = '10',
       studentFilter = 'all', // 'all' | 'critical' | 'search'
       searchTerm = '',
       sortBy = 'name', // 'name' | 'attendance' | 'absences'
       sortOrder = 'asc',
       courseId, // Nuevo: filtrar asistencia por curso
-    } = request.query as { 
-      startDate?: string; 
+    } = request.query as {
+      startDate?: string;
       endDate?: string;
       page?: string;
       sessionsPerPage?: string;
@@ -978,7 +1073,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
 
     // 4. Obtener toda la asistencia para las sesiones filtradas (incluyendo id para edición)
     const sessionIds = filteredSessions.map(s => s.id);
-    
+
     let attendanceRecords: { id: string; sessionId: string; studentId: string; status: string; courseId: string | null }[] = [];
     if (sessionIds.length > 0) {
       if (courseId) {
@@ -1020,7 +1115,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
         .from(attendanceObservations)
         .where(sql`${attendanceObservations.attendanceId} IN (${sql.join(attendanceIds.map(id => sql`${id}`), sql`, `)})`)
         .groupBy(attendanceObservations.attendanceId);
-      
+
       obsResults.forEach(r => {
         observationCounts[r.attendanceId] = r.count;
       });
@@ -1043,15 +1138,15 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
     // 5. Crear mapa de asistencia por estudiante y sesión
     // Cuando hay múltiples cursos (modo "todos los cursos"), aplicar lógica de prioridad
     const attendanceMap = new Map<string, Map<string, { id: string; status: string; observationCount: number }>>();
-    
+
     attendanceRecords.forEach(record => {
       if (!attendanceMap.has(record.studentId)) {
         attendanceMap.set(record.studentId, new Map());
       }
-      
+
       const studentMap = attendanceMap.get(record.studentId)!;
       const existingData = studentMap.get(record.sessionId);
-      
+
       if (!existingData) {
         // No hay registro previo, agregar este
         studentMap.set(record.sessionId, {
@@ -1063,7 +1158,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
         // Ya existe un registro, aplicar prioridad
         const existingPriority = getStatusPriority(existingData.status);
         const newPriority = getStatusPriority(record.status);
-        
+
         if (newPriority > existingPriority) {
           // El nuevo registro tiene mayor prioridad, reemplazar
           studentMap.set(record.sessionId, {
@@ -1084,7 +1179,7 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
 
     const studentsWithStats = studentsData.map(student => {
       const studentAttendance = attendanceMap.get(student.studentId) || new Map();
-      
+
       // Contar asistencias sobre sesiones dictadas
       let attended = 0;
       let absences = 0;
@@ -1101,8 +1196,8 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
         else if (status === 'permiso') justified++;
       });
 
-      const attendancePercentage = totalCompleted > 0 
-        ? Math.round((attended / totalCompleted) * 100) 
+      const attendancePercentage = totalCompleted > 0
+        ? Math.round((attended / totalCompleted) * 100)
         : 100;
 
       // Obtener asistencia solo para las sesiones paginadas (para mostrar en la matriz)
@@ -1144,8 +1239,8 @@ export const attendanceRoutes: FastifyPluginAsync = async (fastify) => {
       filteredStudents = filteredStudents.filter(s => s.stats.isCritical);
     } else if (studentFilter === 'search' && searchTerm) {
       const term = searchTerm.toLowerCase();
-      filteredStudents = filteredStudents.filter(s => 
-        s.fullName.toLowerCase().includes(term) || 
+      filteredStudents = filteredStudents.filter(s =>
+        s.fullName.toLowerCase().includes(term) ||
         s.dni?.toLowerCase().includes(term)
       );
     }

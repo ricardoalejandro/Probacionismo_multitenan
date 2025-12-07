@@ -32,6 +32,7 @@ interface RoleFormDialogProps {
 export function RoleFormDialog({ open, onOpenChange, role, onSave }: RoleFormDialogProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [canManageTransfers, setCanManageTransfers] = useState(false);
   const [permissions, setPermissions] = useState<Record<string, Record<string, boolean>>>({});
   const [loading, setLoading] = useState(false);
 
@@ -53,11 +54,13 @@ export function RoleFormDialog({ open, onOpenChange, role, onSave }: RoleFormDia
     if (role) {
       setName(role.name || '');
       setDescription(role.description || '');
+      setCanManageTransfers(role.canManageTransfers || false);
       // Cargar permisos del rol desde la API
       loadRolePermissions(role.id);
     } else {
       setName('');
       setDescription('');
+      setCanManageTransfers(false);
       setPermissions(initEmptyPermissions());
     }
   }, [role, open]);
@@ -133,7 +136,7 @@ export function RoleFormDialog({ open, onOpenChange, role, onSave }: RoleFormDia
       canEdit: perms.canEdit || false,
       canDelete: false, // No se usa
     }));
-    onSave({ name, description, permissions: permissionsArray });
+    onSave({ name, description, canManageTransfers, permissions: permissionsArray });
   };
 
   return (
@@ -240,6 +243,26 @@ export function RoleFormDialog({ open, onOpenChange, role, onSave }: RoleFormDia
               </div>
             </div>
           )}
+        </div>
+
+        {/* Permisos Especiales */}
+        <div className="space-y-3 pt-4 border-t">
+          <h3 className="font-semibold text-neutral-11 text-sm">Permisos Especiales</h3>
+          <div className="flex items-center space-x-3 p-3 rounded-lg bg-neutral-2 border">
+            <Checkbox
+              id="canManageTransfers"
+              checked={canManageTransfers}
+              onCheckedChange={(checked) => setCanManageTransfers(checked as boolean)}
+            />
+            <div className="flex-1">
+              <Label htmlFor="canManageTransfers" className="cursor-pointer font-medium">
+                Puede gestionar traslados entre filiales
+              </Label>
+              <p className="text-xs text-neutral-10 mt-0.5">
+                Permite enviar, solicitar, aceptar y rechazar traslados de probacionistas
+              </p>
+            </div>
+          </div>
         </div>
       </form>
     </ResponsiveDialog>
