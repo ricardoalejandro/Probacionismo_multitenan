@@ -53,7 +53,8 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('cards'); // Default to cards for mobile
+  const [isMobile, setIsMobile] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState<{
@@ -65,6 +66,21 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
     description: '',
     themes: []
   });
+
+  // Detect mobile screen
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Force cards view on mobile
+      if (mobile && viewMode === 'list') {
+        setViewMode('cards');
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [viewMode]);
 
   // Template states
   const [templates, setTemplates] = useState<CourseTemplate[]>([]);
@@ -301,7 +317,29 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
             )}
           </div>
 
-          {/* VIEW MODE SELECTOR - Hidden on mobile */}
+          {/* VIEW MODE SELECTOR - Mobile version (only Cards and Compact) */}
+          <div className="flex md:hidden border border-gray-200 rounded-lg overflow-hidden bg-white">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-2 text-sm font-medium transition-colors ${viewMode === 'cards'
+                ? 'bg-accent-9 text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+            >
+              Tarjetas
+            </button>
+            <button
+              onClick={() => setViewMode('compact')}
+              className={`px-3 py-2 text-sm font-medium transition-colors border-l border-gray-200 ${viewMode === 'compact'
+                ? 'bg-accent-9 text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+            >
+              Compacta
+            </button>
+          </div>
+
+          {/* VIEW MODE SELECTOR - Desktop version (includes List) */}
           <div className="hidden md:flex border border-gray-200 rounded-lg overflow-hidden bg-white">
             <button
               onClick={() => setViewMode('cards')}
@@ -388,153 +426,142 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         title={`${editingCourse ? 'Editar' : 'Nuevo'} Curso`}
+        defaultMaximized={isMobile}
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Template Selector - Available for both new and existing courses */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* SECCIÓN 1: Plantilla (Opcional) */}
           {templates.length > 0 && (
-            <div className="p-4 bg-gradient-to-r from-accent-2 to-accent-3 rounded-lg border border-accent-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-accent-9" />
-                  <Label className="text-base font-semibold text-accent-11">
-                    {editingCourse ? 'Importar desde Plantilla' : 'Usar Plantilla'} (Opcional)
-                  </Label>
-                </div>
-                {selectedTemplate && (
-                  <Badge variant="default" className="bg-accent-9">
-                    {selectedTemplate.name}
-                  </Badge>
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-accent-9 text-white text-xs flex items-center justify-center">1</span>
+                {editingCourse ? 'Importar desde Plantilla' : 'Usar Plantilla'} (Opcional)
+              </h3>
+              <div className="p-3 bg-gradient-to-r from-accent-2 to-accent-3 rounded-lg border border-accent-4">
+                {editingCourse && (
+                  <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded mb-2">
+                    ⚠️ Importar reemplazará los temas actuales
+                  </p>
                 )}
-              </div>
 
-              {editingCourse && (
-                <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded mb-2">
-                  ⚠️ Al importar una plantilla se <strong>reemplazarán todos los temas</strong> del curso actual
-                </p>
-              )}
-
-              {!showTemplateSelector ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setShowTemplateSelector(true)}
-                    className="flex-1 justify-between bg-white"
-                  >
-                    <span className="text-neutral-9">
-                      {selectedTemplate
-                        ? `✓ ${selectedTemplate.name} (${selectedTemplate.topicsCount} temas)`
-                        : editingCourse ? 'Importar temas de plantilla...' : 'Seleccionar plantilla...'
-                      }
-                    </span>
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                  {selectedTemplate && (
+                {!showTemplateSelector ? (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setShowTemplateSelector(true)}
+                      className="flex-1 justify-between bg-white h-11"
+                    >
+                      <span className="text-neutral-9 truncate">
+                        {selectedTemplate
+                          ? `✓ ${selectedTemplate.name}`
+                          : 'Seleccionar plantilla...'
+                        }
+                      </span>
+                      <ChevronDown className="h-4 w-4 shrink-0" />
+                    </Button>
+                    {selectedTemplate && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedTemplate(null);
+                          if (!editingCourse) {
+                            setFormData({ ...formData, themes: [] });
+                          }
+                        }}
+                        className="text-red-600 h-11 w-11"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="max-h-40 overflow-y-auto space-y-1 bg-white rounded-lg p-2 border">
+                      {templates.map((template) => (
+                        <div
+                          key={template.id}
+                          className="flex items-center justify-between p-2 hover:bg-neutral-2 rounded-lg cursor-pointer active:bg-neutral-3"
+                          onClick={() => applyTemplate(template)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{template.name}</div>
+                          </div>
+                          <Badge variant="secondary" className="shrink-0 text-xs">{template.topicsCount} temas</Badge>
+                        </div>
+                      ))}
+                    </div>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        setSelectedTemplate(null);
-                        if (!editingCourse) {
-                          setFormData({ ...formData, themes: [] });
-                        }
-                      }}
-                      className="text-red-600"
+                      onClick={() => setShowTemplateSelector(false)}
+                      className="w-full h-10"
                     >
-                      <X className="h-4 w-4" />
+                      Cerrar
                     </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="max-h-48 overflow-y-auto space-y-1 bg-white rounded-lg p-2 border">
-                    {templates.map((template) => (
-                      <div
-                        key={template.id}
-                        className="flex items-center justify-between p-2 hover:bg-neutral-2 rounded-lg cursor-pointer group"
-                        onClick={() => applyTemplate(template)}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{template.name}</div>
-                          {template.description && (
-                            <div className="text-xs text-neutral-9 truncate">{template.description}</div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <Badge variant="secondary">{template.topicsCount} temas</Badge>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePreviewTemplate(template);
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowTemplateSelector(false)}
-                    className="w-full"
-                  >
-                    Cerrar selector
-                  </Button>
-                </div>
-              )}
-
-              <p className="text-xs text-accent-10 mt-2">
-                💡 {editingCourse
-                  ? 'Importa los temas de una plantilla para reemplazar el contenido actual'
-                  : 'Selecciona una plantilla para cargar los temas automáticamente'}
-              </p>
+                )}
+              </div>
             </div>
           )}
 
-          <div className="space-y-4">
-            <div className="p-4 bg-neutral-2 rounded-lg space-y-4">
-              <h3 className="font-semibold text-neutral-11 flex items-center gap-2">
-                📝 Información del Curso
-              </h3>
+          {/* SECCIÓN 2: Información del Curso */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-accent-9 text-white text-xs flex items-center justify-center">{templates.length > 0 ? '2' : '1'}</span>
+              Información del Curso
+            </h3>
+            <div className="space-y-3">
               <div>
-                <Label>Nombre del Curso *</Label>
+                <Label className="text-xs">Nombre del Curso *</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Ej: Filosofía Básica I"
                   required
+                  className="h-11"
                 />
               </div>
               <div>
-                <Label>Descripción</Label>
+                <Label className="text-xs">Descripción</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Descripción del curso..."
                   rows={2}
+                  className="resize-none"
                 />
               </div>
             </div>
+          </div>
 
-            {/* Course Topics Editor with Import/Export */}
+          {/* SECCIÓN 3: Temas del Curso */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-accent-9 text-white text-xs flex items-center justify-center">{templates.length > 0 ? '3' : '2'}</span>
+              Temas del Curso
+            </h3>
             <CourseTopicsEditor
               courseId={editingCourse?.id}
               initialTopics={formData.themes}
               onChange={(topics) => setFormData({ ...formData, themes: topics })}
+              isMobile={isMobile}
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>
+
+          {/* Botones de acción - Sticky en móvil */}
+          <div className="flex gap-3 pt-4 border-t sticky bottom-0 bg-white py-4 -mx-4 px-4 md:relative md:mx-0 md:px-0 md:py-0 md:border-t-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              className="flex-1 h-11"
+            >
               Cancelar
             </Button>
-            <Button type="submit" className="bg-accent-9 hover:bg-accent-10 text-white">
+            <Button type="submit" className="flex-1 h-11 bg-accent-9 hover:bg-accent-10 text-white">
               {editingCourse ? 'Actualizar' : 'Crear'} Curso
             </Button>
           </div>
@@ -543,14 +570,14 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
 
       {/* Template Preview Dialog */}
       <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5" />
               Vista Previa: {previewTemplate?.name}
             </DialogTitle>
           </DialogHeader>
-          <DialogBody>
+          <DialogBody className="overflow-y-auto">
             {previewTemplate?.description && (
               <p className="text-neutral-9 mb-4">{previewTemplate.description}</p>
             )}
@@ -566,10 +593,10 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
                     <div key={idx} className="p-3 bg-neutral-2 rounded-lg">
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary">{idx + 1}</Badge>
-                        <span className="font-medium">{topic.title}</span>
+                        <span className="font-medium text-sm">{topic.title}</span>
                       </div>
                       {topic.description && (
-                        <p className="text-sm text-neutral-9 mt-1 ml-8">{topic.description}</p>
+                        <p className="text-xs text-neutral-9 mt-1 ml-8">{topic.description}</p>
                       )}
                     </div>
                   ))}
@@ -577,8 +604,8 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
               )}
             </div>
           </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setPreviewTemplate(null)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="secondary" onClick={() => setPreviewTemplate(null)} className="w-full sm:w-auto">
               Cerrar
             </Button>
             <Button
@@ -588,7 +615,7 @@ export default function CoursesModule({ branchId }: { branchId: string }) {
                   setPreviewTemplate(null);
                 }
               }}
-              className="bg-accent-9 hover:bg-accent-10"
+              className="bg-accent-9 hover:bg-accent-10 w-full sm:w-auto"
             >
               Usar esta plantilla
             </Button>

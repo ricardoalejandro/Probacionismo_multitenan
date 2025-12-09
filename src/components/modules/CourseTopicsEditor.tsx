@@ -23,9 +23,10 @@ interface CourseTopicsEditorProps {
   courseId?: string;
   initialTopics?: CourseTopic[];
   onChange: (topics: CourseTopic[]) => void;
+  isMobile?: boolean;
 }
 
-export default function CourseTopicsEditor({ courseId, initialTopics = [], onChange }: CourseTopicsEditorProps) {
+export default function CourseTopicsEditor({ courseId, initialTopics = [], onChange, isMobile = false }: CourseTopicsEditorProps) {
   const [topics, setTopics] = useState<CourseTopic[]>(initialTopics);
   const [expandedTopics, setExpandedTopics] = useState<Set<number>>(new Set());
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -201,21 +202,24 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Label className="text-base font-semibold flex items-center gap-2">
+    <div className="space-y-3">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <Label className="text-sm font-semibold flex items-center gap-2">
           <BookOpen className="h-4 w-4" />
-          Temas del Curso ({topics.length})
+          Temas ({topics.length})
         </Label>
         <div className="flex gap-2">
+          {/* Import/Export - Hidden text on mobile */}
           <Button
             type="button"
             size="sm"
             variant="secondary"
             onClick={() => setShowImportDialog(true)}
+            className="h-9 px-2 sm:px-3"
           >
-            <Upload className="h-4 w-4 mr-1" />
-            Importar
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Importar</span>
           </Button>
           <Button
             type="button"
@@ -223,13 +227,14 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
             variant="secondary"
             onClick={() => setShowExportDialog(true)}
             disabled={!courseId}
+            className="h-9 px-2 sm:px-3"
           >
-            <Download className="h-4 w-4 mr-1" />
-            Exportar
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Exportar</span>
           </Button>
-          <Button type="button" size="sm" onClick={addTopic} className="bg-accent-9 hover:bg-accent-10 text-white">
-            <Plus className="h-4 w-4 mr-1" />
-            Añadir Tema
+          <Button type="button" size="sm" onClick={addTopic} className="h-9 bg-accent-9 hover:bg-accent-10 text-white">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Añadir</span>
           </Button>
         </div>
       </div>
@@ -237,31 +242,31 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
       {topics.length > 0 && (
         <div className="flex gap-2 text-xs">
           <button type="button" onClick={expandAll} className="text-accent-9 hover:underline">
-            Expandir todos
+            Expandir
           </button>
           <span className="text-neutral-6">|</span>
           <button type="button" onClick={collapseAll} className="text-accent-9 hover:underline">
-            Colapsar todos
+            Colapsar
           </button>
         </div>
       )}
 
       <div className="space-y-2">
         {topics.length === 0 ? (
-          <div className="text-center py-8 border-2 border-dashed border-neutral-4 rounded-lg bg-neutral-1">
-            <BookOpen className="mx-auto h-10 w-10 text-neutral-5" />
-            <p className="mt-3 text-neutral-9">No hay temas añadidos</p>
-            <p className="text-sm text-neutral-7">Haz clic en &quot;Añadir Tema&quot; o importa una plantilla</p>
+          <div className="text-center py-6 border-2 border-dashed border-neutral-4 rounded-lg bg-neutral-1">
+            <BookOpen className="mx-auto h-8 w-8 text-neutral-5" />
+            <p className="mt-2 text-sm text-neutral-9">No hay temas</p>
+            <p className="text-xs text-neutral-7">Añade temas o importa</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[300px] sm:max-h-[400px] overflow-y-auto">
             {topics.map((topic, index) => (
               <div
                 key={index}
-                draggable
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragEnd={handleDragEnd}
+                draggable={!isMobile}
+                onDragStart={() => !isMobile && handleDragStart(index)}
+                onDragOver={(e) => !isMobile && handleDragOver(e, index)}
+                onDragEnd={() => !isMobile && handleDragEnd()}
                 className={`border rounded-lg bg-white transition-all ${
                   draggedIndex === index 
                     ? 'opacity-50 border-accent-9 shadow-lg' 
@@ -269,12 +274,13 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
                 }`}
               >
                 {/* Header row - always visible */}
-                <div className="flex items-center gap-2 p-3">
-                  <div className="cursor-grab active:cursor-grabbing hover:bg-neutral-2 rounded p-1 transition-colors">
+                <div className="flex items-center gap-1.5 sm:gap-2 p-2 sm:p-3">
+                  {/* Drag handle - hidden on mobile */}
+                  <div className="hidden sm:block cursor-grab active:cursor-grabbing hover:bg-neutral-2 rounded p-1 transition-colors">
                     <GripVertical className="h-4 w-4 text-neutral-5" />
                   </div>
                   
-                  <Badge variant="secondary" className="shrink-0 font-mono">
+                  <Badge variant="secondary" className="shrink-0 font-mono text-xs w-6 h-6 flex items-center justify-center p-0">
                     {index + 1}
                   </Badge>
                   
@@ -284,27 +290,27 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
                         value={topic.title}
                         onChange={(e) => updateTopic(index, 'title', e.target.value)}
                         placeholder="Título del tema"
-                        className="font-medium"
+                        className="font-medium h-9 text-sm"
                         onClick={(e) => e.stopPropagation()}
                       />
                     ) : (
                       <span 
-                        className={`font-medium truncate block cursor-pointer hover:text-accent-9 ${
+                        className={`font-medium text-sm truncate block cursor-pointer hover:text-accent-9 ${
                           !topic.title ? 'text-neutral-6 italic' : ''
                         }`}
                         onClick={() => toggleTopicExpand(index)}
                       >
-                        {topic.title || 'Sin título - clic para editar'}
+                        {topic.title || 'Sin título'}
                       </span>
                     )}
                   </div>
 
                   <Button
                     type="button"
-                    size="sm"
+                    size="icon"
                     variant="ghost"
                     onClick={() => toggleTopicExpand(index)}
-                    className="shrink-0"
+                    className="shrink-0 h-8 w-8"
                   >
                     {expandedTopics.has(index) ? (
                       <ChevronUp className="h-4 w-4" />
@@ -315,10 +321,10 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
 
                   <Button
                     type="button"
-                    size="sm"
+                    size="icon"
                     variant="ghost"
                     onClick={() => removeTopic(index)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 shrink-0 h-8 w-8"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -326,15 +332,15 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
 
                 {/* Expanded content */}
                 {expandedTopics.has(index) && (
-                  <div className="px-3 pb-3 pt-0 border-t border-neutral-3">
-                    <div className="pl-10 mt-3">
-                      <Label className="text-sm text-neutral-9">Descripción</Label>
+                  <div className="px-2 sm:px-3 pb-2 sm:pb-3 pt-0 border-t border-neutral-3">
+                    <div className="sm:pl-8 mt-2 sm:mt-3">
+                      <Label className="text-xs text-neutral-9">Descripción</Label>
                       <Textarea
                         value={topic.description}
                         onChange={(e) => updateTopic(index, 'description', e.target.value)}
-                        placeholder="Descripción detallada del tema..."
+                        placeholder="Descripción del tema..."
                         rows={2}
-                        className="mt-1"
+                        className="mt-1 text-sm resize-none"
                       />
                     </div>
                   </div>
@@ -347,7 +353,7 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
 
       {/* Export Dialog */}
       <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-sm sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Exportar Temas</DialogTitle>
           </DialogHeader>
@@ -355,12 +361,12 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
             <div className="space-y-4">
               <div>
                 <Label>Formato</Label>
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-col sm:flex-row gap-2 mt-2">
                   <Button
                     type="button"
                     variant={exportFormat === 'excel' ? 'default' : 'outline'}
                     onClick={() => setExportFormat('excel')}
-                    className="flex-1"
+                    className="flex-1 h-11"
                   >
                     <FileSpreadsheet className="h-4 w-4 mr-2" />
                     Excel (.xlsx)
@@ -369,7 +375,7 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
                     type="button"
                     variant={exportFormat === 'csv' ? 'default' : 'outline'}
                     onClick={() => setExportFormat('csv')}
-                    className="flex-1"
+                    className="flex-1 h-11"
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     CSV (.csv)
@@ -378,12 +384,12 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
               </div>
               <div>
                 <Label>Contenido</Label>
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-col sm:flex-row gap-2 mt-2">
                   <Button
                     type="button"
                     variant={exportIncludeData ? 'default' : 'outline'}
                     onClick={() => setExportIncludeData(true)}
-                    className="flex-1"
+                    className="flex-1 h-11"
                   >
                     Con datos actuales
                   </Button>
@@ -391,7 +397,7 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
                     type="button"
                     variant={!exportIncludeData ? 'default' : 'outline'}
                     onClick={() => setExportIncludeData(false)}
-                    className="flex-1"
+                    className="flex-1 h-11"
                   >
                     Plantilla vacía
                   </Button>
@@ -399,11 +405,12 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
               </div>
             </div>
           </DialogBody>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setShowExportDialog(false)}>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button variant="secondary" onClick={() => setShowExportDialog(false)} className="w-full sm:w-auto h-11">
               Cancelar
             </Button>
-            <Button onClick={handleExport} className="bg-accent-9 hover:bg-accent-10">
+            <Button onClick={handleExport} className="w-full sm:w-auto h-11 bg-accent-9 hover:bg-accent-10">
+              <Download className="h-4 w-4 mr-2" />
               Descargar
             </Button>
           </DialogFooter>
@@ -418,7 +425,7 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
           </DialogHeader>
           <DialogBody>
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-neutral-4 rounded-lg p-6 text-center hover:border-accent-9 transition-colors">
+              <div className="border-2 border-dashed border-neutral-4 rounded-lg p-4 md:p-6 text-center hover:border-accent-9 transition-colors">
                 <Input
                   type="file"
                   accept=".xlsx,.xls,.csv"
@@ -428,36 +435,52 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
                   disabled={isImporting}
                 />
                 <label htmlFor="import-file" className="cursor-pointer">
-                  <Upload className="h-12 w-12 mx-auto text-neutral-9 mb-2" />
+                  <Upload className="h-10 w-10 md:h-12 md:w-12 mx-auto text-neutral-9 mb-2" />
                   <p className="text-sm font-medium text-neutral-11">
                     Haz clic para seleccionar archivo
                   </p>
                   <p className="text-xs text-neutral-9 mt-1">
-                    Formatos soportados: Excel (.xlsx) o CSV (.csv)
+                    Formatos: Excel (.xlsx) o CSV (.csv)
                   </p>
                 </label>
               </div>
 
               {importFile && (
-                <div className="text-sm text-neutral-10">
-                  Archivo seleccionado: <span className="font-medium">{importFile.name}</span>
+                <div className="text-sm text-neutral-10 bg-neutral-2 rounded-lg p-3">
+                  <span className="text-neutral-9">Archivo:</span>{' '}
+                  <span className="font-medium break-all">{importFile.name}</span>
                 </div>
               )}
 
               {importPreview.length > 0 && (
                 <>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 md:p-4 flex items-start gap-2 md:gap-3">
                     <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-yellow-800">
+                    <div className="text-xs md:text-sm text-yellow-800">
                       <p className="font-medium">⚠️ Advertencia</p>
                       <p className="mt-1">
-                        Esto reemplazará TODOS los temas actuales del curso ({topics.length} temas)
-                        con los {importPreview.length} temas del archivo.
+                        Esto reemplazará TODOS los temas actuales ({topics.length}) con los {importPreview.length} temas del archivo.
                       </p>
                     </div>
                   </div>
 
-                  <div className="max-h-64 overflow-y-auto border border-neutral-4 rounded-lg">
+                  {/* Mobile: Card view */}
+                  <div className="md:hidden max-h-48 overflow-y-auto space-y-2">
+                    {importPreview.map((topic, idx) => (
+                      <div key={idx} className="bg-neutral-2 rounded-lg p-3 border border-neutral-4">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">{idx + 1}</Badge>
+                          <span className="font-medium text-sm truncate">{topic.title}</span>
+                        </div>
+                        {topic.description && (
+                          <p className="text-xs text-neutral-9 mt-1 line-clamp-2">{topic.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop: Table view */}
+                  <div className="hidden md:block max-h-64 overflow-y-auto border border-neutral-4 rounded-lg">
                     <table className="w-full text-sm">
                       <thead className="bg-neutral-2 sticky top-0">
                         <tr>
@@ -485,7 +508,7 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
               )}
             </div>
           </DialogBody>
-          <DialogFooter>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button
               variant="secondary"
               onClick={() => {
@@ -493,14 +516,16 @@ export default function CourseTopicsEditor({ courseId, initialTopics = [], onCha
                 setImportFile(null);
                 setImportPreview([]);
               }}
+              className="w-full sm:w-auto h-11"
             >
               Cancelar
             </Button>
             <Button
               onClick={applyImport}
               disabled={importPreview.length === 0}
-              className="bg-accent-9 hover:bg-accent-10"
+              className="w-full sm:w-auto h-11 bg-accent-9 hover:bg-accent-10"
             >
+              <Upload className="h-4 w-4 mr-2" />
               Aplicar Cambios
             </Button>
           </DialogFooter>
