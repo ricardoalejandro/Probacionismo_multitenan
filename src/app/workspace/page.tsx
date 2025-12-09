@@ -329,21 +329,22 @@ function WorkspaceContent() {
           {/* User dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 hover:bg-gray-100 rounded-full pl-2 pr-3 py-1.5 transition-colors">
+              <button className="flex items-center gap-2 hover:bg-gray-100 rounded-full pl-2 pr-2 md:pr-3 py-1.5 transition-colors">
                 <Avatar className="h-8 w-8 border-2 border-accent-4">
                   <AvatarFallback className="bg-gradient-to-br from-accent-9 to-accent-11 text-white text-sm font-medium">
                     {user ? getInitials(user.fullName) : 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-gray-900 leading-tight">
-                    {user?.username || user?.fullName || 'Usuario'}
+                {/* Nombre visible en móvil y desktop */}
+                <div className="text-left max-w-[80px] md:max-w-none">
+                  <p className="text-xs md:text-sm font-medium text-gray-900 leading-tight truncate">
+                    {user?.fullName?.split(' ')[0] || user?.username || 'Usuario'}
                   </p>
-                  <p className="text-xs text-gray-500 leading-tight">
+                  <p className="text-[10px] md:text-xs text-gray-500 leading-tight hidden md:block">
                     {user?.userType === 'admin' ? 'Administrador' : 'Operador'}
                   </p>
                 </div>
-                <ChevronDown className="h-4 w-4 text-gray-400 hidden md:block" />
+                <ChevronDown className="h-4 w-4 text-gray-400" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -406,8 +407,8 @@ function WorkspaceContent() {
             </Button>
           </div>
 
-          {/* Toggle Button */}
-          <div className={cn('p-2 border-b border-gray-100', sidebarCollapsed && 'px-1')}>
+          {/* Toggle Button - Solo visible en desktop */}
+          <div className={cn('p-2 border-b border-gray-100 hidden md:block', sidebarCollapsed && 'px-1')}>
             <Button
               variant="ghost"
               size={sidebarCollapsed ? 'icon' : 'sm'}

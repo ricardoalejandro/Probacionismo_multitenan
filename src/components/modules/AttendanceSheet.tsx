@@ -895,7 +895,7 @@ export function AttendanceSheet({
 
       {/* Observation Sheet */}
       <Sheet open={observationOpen} onOpenChange={setObservationOpen}>
-        <SheetContent className="w-[400px] sm:w-[540px]">
+        <SheetContent className="w-full sm:w-[400px] md:w-[540px] p-4 sm:p-6">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <History className="h-5 w-5" />

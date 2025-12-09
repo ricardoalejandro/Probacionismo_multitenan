@@ -80,9 +80,25 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('cards'); // Default to cards (better for mobile)
+  const [isMobile, setIsMobile] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+
+  // Detect mobile screen
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Force cards view on mobile
+      if (mobile && viewMode === 'list') {
+        setViewMode('cards');
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [viewMode]);
 
   // Filtros
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -554,7 +570,29 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
               </Button>
             )}
 
-            {/* VIEW MODE SELECTOR - Hidden on mobile */}
+            {/* VIEW MODE SELECTOR - Mobile version (only Cards and Compact) */}
+            <div className="flex md:hidden border border-gray-200 rounded-lg overflow-hidden bg-white ml-auto">
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`px-3 py-2 text-sm font-medium transition-colors ${viewMode === 'cards'
+                  ? 'bg-accent-9 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+              >
+                Tarjetas
+              </button>
+              <button
+                onClick={() => setViewMode('compact')}
+                className={`px-3 py-2 text-sm font-medium transition-colors border-l border-gray-200 ${viewMode === 'compact'
+                  ? 'bg-accent-9 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+              >
+                Compacta
+              </button>
+            </div>
+
+            {/* VIEW MODE SELECTOR - Desktop version (includes List) */}
             <div className="hidden md:flex border border-gray-200 rounded-lg overflow-hidden bg-white ml-auto">
               <button
                 onClick={() => setViewMode('cards')}
@@ -678,294 +716,321 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         title={`${editingStudent ? 'Editar' : 'Nuevo'} Probacionista`}
+        defaultMaximized={isMobile}
       >
         <form
           onSubmit={handleSubmit}
-          className="space-y-6"
+          className="space-y-5"
         >
+          {/* Estado actual - solo en edición */}
           {editingStudent && (
-            <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
-              <span className="text-sm font-medium text-gray-600">Estado Actual:</span>
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 border">
+              <span className="text-sm font-medium text-gray-600">Estado:</span>
               <Badge variant={editingStudent.status === 'Baja' ? 'danger' : 'success'}>
                 {editingStudent.status}
               </Badge>
-              {editingStudent.status === 'Baja' && (
-                <span className="text-xs text-gray-500">(Probacionista dado de baja)</span>
-              )}
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Document Type */}
-            <div>
-              <Label>Tipo de Documento</Label>
-              <Select
-                value={formData.documentType}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, documentType: value })
-                }
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DNI">DNI</SelectItem>
-                  <SelectItem value="CNE">CNE</SelectItem>
-                  <SelectItem value="Pasaporte">Pasaporte</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
-            {/* DNI */}
-            <div>
-              <Label>Número de Documento *</Label>
-              <Input
-                value={formData.dni}
-                onChange={(e) => handleDniInput(e.target.value)}
-                placeholder="12345678"
-                maxLength={8}
-                required
-                className={formErrors.dni ? 'border-red-500' : ''}
-              />
-              {formErrors.dni && (
-                <p className="text-sm text-red-500 mt-1">{formErrors.dni}</p>
-              )}
-            </div>
-
-            {/* First Name */}
-            <div>
-              <Label>Nombres</Label>
-              <Input
-                value={formData.firstName}
-                onChange={(e) =>
-                  setFormData({ ...formData, firstName: e.target.value })
-                }
-                required
-              />
-            </div>
-
-            {/* Paternal Last Name */}
-            <div>
-              <Label>Apellido Paterno</Label>
-              <Input
-                value={formData.paternalLastName}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    paternalLastName: e.target.value,
-                  })
-                }
-                required
-              />
-            </div>
-
-            {/* Maternal Last Name */}
-            <div>
-              <Label>Apellido Materno</Label>
-              <Input
-                value={formData.maternalLastName}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    maternalLastName: e.target.value,
-                  })
-                }
-                required
-              />
-            </div>
-
-            {/* Gender */}
-            <div>
-              <Label>Género *</Label>
-              <Select
-                value={formData.gender}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, gender: value });
-                  if (formErrors.gender) {
-                    setFormErrors({ ...formErrors, gender: '' });
+          {/* SECCIÓN 1: Documento */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-accent-9 text-white text-xs flex items-center justify-center">1</span>
+              Documento de Identidad
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Tipo</Label>
+                <Select
+                  value={formData.documentType}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, documentType: value })
                   }
-                }}
-                required
-              >
-                <SelectTrigger className={formErrors.gender ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Seleccionar género" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Masculino">Masculino</SelectItem>
-                  <SelectItem value="Femenino">Femenino</SelectItem>
-                  <SelectItem value="Otro">Otro</SelectItem>
-                </SelectContent>
-              </Select>
-              {formErrors.gender && (
-                <p className="text-sm text-red-500 mt-1">{formErrors.gender}</p>
-              )}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DNI">DNI</SelectItem>
+                    <SelectItem value="CNE">CNE</SelectItem>
+                    <SelectItem value="Pasaporte">Pasaporte</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Número *</Label>
+                <Input
+                  value={formData.dni}
+                  onChange={(e) => handleDniInput(e.target.value)}
+                  placeholder="12345678"
+                  maxLength={formData.documentType === 'Pasaporte' ? 12 : 8}
+                  required
+                  className={`h-11 ${formErrors.dni ? 'border-red-500' : ''}`}
+                />
+                {formErrors.dni && (
+                  <p className="text-xs text-red-500 mt-1">{formErrors.dni}</p>
+                )}
+              </div>
             </div>
+          </div>
 
-            {/* Email */}
+          {/* SECCIÓN 2: Datos Personales */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-accent-9 text-white text-xs flex items-center justify-center">2</span>
+              Datos Personales
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Nombres *</Label>
+                <Input
+                  value={formData.firstName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, firstName: e.target.value })
+                  }
+                  required
+                  className="h-11"
+                  placeholder="Nombres completos"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Ap. Paterno *</Label>
+                  <Input
+                    value={formData.paternalLastName}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        paternalLastName: e.target.value,
+                      })
+                    }
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Ap. Materno *</Label>
+                  <Input
+                    value={formData.maternalLastName}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        maternalLastName: e.target.value,
+                      })
+                    }
+                    required
+                    className="h-11"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Género *</Label>
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, gender: value });
+                      if (formErrors.gender) {
+                        setFormErrors({ ...formErrors, gender: '' });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className={`h-11 ${formErrors.gender ? 'border-red-500' : ''}`}>
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Masculino">Masculino</SelectItem>
+                      <SelectItem value="Femenino">Femenino</SelectItem>
+                      <SelectItem value="Otro">Otro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formErrors.gender && (
+                    <p className="text-xs text-red-500 mt-1">{formErrors.gender}</p>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-xs">Nacimiento</Label>
+                  <Input
+                    type="date"
+                    value={formData.birthDate}
+                    onChange={(e) => {
+                      setFormData({ ...formData, birthDate: e.target.value });
+                      if (formErrors.birthDate) {
+                        setFormErrors({ ...formErrors, birthDate: '' });
+                      }
+                    }}
+                    className={`h-11 ${formErrors.birthDate ? 'border-red-500' : ''}`}
+                  />
+                  {formErrors.birthDate && (
+                    <p className="text-xs text-red-500 mt-1">{formErrors.birthDate}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECCIÓN 3: Contacto */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-accent-9 text-white text-xs flex items-center justify-center">3</span>
+              Contacto
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Teléfono</Label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  className="h-11"
+                  placeholder="999 999 999"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Email</Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  className="h-11"
+                  placeholder="correo@ejemplo.com"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECCIÓN 4: Ubicación */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-accent-9 text-white text-xs flex items-center justify-center">4</span>
+              Ubicación
+            </h3>
             <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-              />
-            </div>
-
-            {/* Phone */}
-            <div>
-              <Label>Teléfono</Label>
-              <Input
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-              />
-            </div>
-
-            {/* Address */}
-            <div className="col-span-2">
-              <Label>Dirección</Label>
+              <Label className="text-xs">Dirección</Label>
               <Textarea
                 value={formData.address}
                 onChange={(e) =>
                   setFormData({ ...formData, address: e.target.value })
                 }
-                placeholder="Dirección completa del probacionista"
-                rows={3}
+                placeholder="Av. / Jr. / Calle..."
+                rows={2}
+                className="resize-none"
               />
             </div>
-
-            {/* Birth Date */}
-            <div>
-              <Label>Fecha de Nacimiento</Label>
-              <Input
-                type="date"
-                value={formData.birthDate}
-                onChange={(e) => {
-                  setFormData({ ...formData, birthDate: e.target.value });
-                  if (formErrors.birthDate) {
-                    setFormErrors({ ...formErrors, birthDate: '' });
-                  }
-                }}
-                className={formErrors.birthDate ? 'border-red-500' : ''}
-              />
-              {formErrors.birthDate && (
-                <p className="text-sm text-red-500 mt-1">{formErrors.birthDate}</p>
-              )}
-            </div>
-
-            {/* Admission Date */}
-            <div>
-              <Label>Fecha de Admisión</Label>
-              <Input
-                type="date"
-                value={formData.admissionDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, admissionDate: e.target.value })
-                }
-                required
-              />
-            </div>
-
-            {/* Admission Type (Only for new records) */}
-            {!editingStudent && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <Label>Tipo de Alta</Label>
-                <Select
-                  value={formData.admissionType}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, admissionType: value })
-                  }
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar tipo" />
+                <Label className="text-xs">Departamento</Label>
+                <Select value={selectedDeptId} onValueChange={handleDepartmentChange}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Seleccionar" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Nuevo">Nuevo Ingreso</SelectItem>
-                    <SelectItem value="Recuperado">Recuperado</SelectItem>
-                    <SelectItem value="Traslado">Traslado de otra Sede</SelectItem>
+                    {departments.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
-
-
-            {/* Department */}
-            <div>
-              <Label>Departamento</Label>
-              <Select value={selectedDeptId} onValueChange={handleDepartmentChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Province */}
-            <div>
-              <Label>Provincia</Label>
-              <Select
-                value={selectedProvId}
-                onValueChange={handleProvinceChange}
-                disabled={!selectedDeptId}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={!selectedDeptId ? 'Selecciona un departamento' : 'Seleccionar...'}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {provinces.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* District */}
-            <div>
-              <Label>Distrito</Label>
-              <Select
-                value={selectedDistId}
-                onValueChange={handleDistrictChange}
-                disabled={!selectedProvId}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={!selectedProvId ? 'Selecciona una provincia' : 'Seleccionar...'}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {districts.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div>
+                <Label className="text-xs">Provincia</Label>
+                <Select
+                  value={selectedProvId}
+                  onValueChange={handleProvinceChange}
+                  disabled={!selectedDeptId}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder={!selectedDeptId ? '...' : 'Seleccionar'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provinces.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Distrito</Label>
+                <Select
+                  value={selectedDistId}
+                  onValueChange={handleDistrictChange}
+                  disabled={!selectedProvId}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder={!selectedProvId ? '...' : 'Seleccionar'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districts.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4">
+
+          {/* SECCIÓN 5: Admisión (solo para nuevos) */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-accent-9 text-white text-xs flex items-center justify-center">5</span>
+              Admisión
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Fecha de Admisión *</Label>
+                <Input
+                  type="date"
+                  value={formData.admissionDate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, admissionDate: e.target.value })
+                  }
+                  required
+                  className="h-11"
+                />
+              </div>
+              {!editingStudent && (
+                <div>
+                  <Label className="text-xs">Tipo de Alta</Label>
+                  <Select
+                    value={formData.admissionType}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, admissionType: value })
+                    }
+                  >
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Nuevo">Nuevo Ingreso</SelectItem>
+                      <SelectItem value="Recuperado">Recuperado</SelectItem>
+                      <SelectItem value="Traslado">Traslado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Botones de acción - Sticky en móvil */}
+          <div className="flex gap-3 pt-4 border-t sticky bottom-0 bg-white py-4 -mx-4 px-4 md:relative md:mx-0 md:px-0 md:py-0 md:border-t-0">
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               onClick={() => setIsDialogOpen(false)}
+              className="flex-1 h-11"
             >
               Cancelar
             </Button>
-            <Button type="submit" className="bg-accent-9 hover:bg-accent-10 text-white">
-              {editingStudent ? 'Actualizar' : 'Crear'}
+            <Button type="submit" className="flex-1 h-11 bg-accent-9 hover:bg-accent-10 text-white">
+              {editingStudent ? 'Actualizar' : 'Crear Probacionista'}
             </Button>
           </div>
         </form>

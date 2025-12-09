@@ -463,12 +463,12 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
                 {pendingSessions.slice(0, 5).map((pending) => (
                   <div
                     key={pending.sessionId}
-                    className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-gray-900 border border-amber-200"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg bg-white dark:bg-gray-900 border border-amber-200"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div
                         className={cn(
-                          'w-10 h-10 rounded-full flex items-center justify-center',
+                          'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
                           pending.isToday
                             ? 'bg-amber-100 text-amber-600'
                             : 'bg-red-100 text-red-600'
@@ -480,9 +480,9 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
                           <AlertCircle className="h-5 w-5" />
                         )}
                       </div>
-                      <div>
-                        <p className="font-medium">{pending.groupName}</p>
-                        <p className="text-sm text-muted-foreground">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{pending.groupName}</p>
+                        <p className="text-sm text-muted-foreground truncate">
                           Sesión #{pending.sessionNumber} •{' '}
                           {formatSessionDate(pending.sessionDate, {
                             weekday: 'short',
@@ -492,20 +492,21 @@ export default function AttendanceModule({ branchId }: { branchId: string }) {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
                       {pending.isToday ? (
                         <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300">
                           Hoy
                         </Badge>
                       ) : (
-                        <Badge variant="danger">
-                          {pending.daysOverdue} días de atraso
+                        <Badge variant="danger" className="whitespace-nowrap">
+                          {pending.daysOverdue} días atraso
                         </Badge>
                       )}
                       <Button
                         size="sm"
                         variant="secondary"
                         onClick={() => handleOpenPendingSession(pending)}
+                        className="flex-shrink-0"
                       >
                         Registrar
                       </Button>
@@ -721,13 +722,13 @@ function SessionListView({
             )}
             onClick={() => !isSuspended && onSelectSession(session)}
           >
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            <CardContent className="py-3 px-3 sm:py-4 sm:px-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   {/* Session number indicator */}
                   <div
                     className={cn(
-                      'w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg',
+                      'w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-base sm:text-lg flex-shrink-0',
                       session.status === 'dictada'
                         ? 'bg-green-100 text-green-700'
                         : isSuspended
@@ -737,44 +738,43 @@ function SessionListView({
                             : 'bg-gray-100 text-gray-700'
                     )}
                   >
-                    {isSuspended ? <PauseCircle className="h-6 w-6" /> : session.sessionNumber}
+                    {isSuspended ? <PauseCircle className="h-5 w-5 sm:h-6 sm:w-6" /> : session.sessionNumber}
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium">Sesión #{session.sessionNumber}</p>
+                      <p className="font-medium truncate">Sesión #{session.sessionNumber}</p>
                       {session.status === 'dictada' && (
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
                       )}
                       {isSuspended && (
-                        <PauseCircle className="h-4 w-4 text-purple-600" />
+                        <PauseCircle className="h-4 w-4 text-purple-600 flex-shrink-0" />
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
                       {formatSessionDate(session.sessionDate, {
-                        weekday: 'long',
+                        weekday: 'short',
                         day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
+                        month: 'short',
                       })}
                     </p>
                     {isSuspended && session.suspensionReason && (
-                      <p className="text-sm text-purple-600 mt-1">
+                      <p className="text-xs sm:text-sm text-purple-600 mt-1 truncate">
                         Razón: {session.suspensionReason}
                       </p>
                     )}
                     {!isSuspended && session.topics.length > 0 && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-1">
                         {session.topics.map((t) => t.topicTitle).join(' • ')}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between sm:justify-end gap-2 flex-shrink-0">
                   {session.status === 'dictada' ? (
                     <>
-                      <Badge className="bg-green-600">Dictada</Badge>
+                      <Badge className="bg-green-600 text-xs">Dictada</Badge>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -783,15 +783,15 @@ function SessionListView({
                           onReopenSession(session);
                         }}
                         title="Reabrir sesión"
-                        className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                        className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-2 sm:px-3"
                       >
-                        <RotateCcw className="h-4 w-4 mr-1" />
-                        Reabrir
+                        <RotateCcw className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-1">Reabrir</span>
                       </Button>
                     </>
                   ) : isSuspended ? (
                     <>
-                      <Badge className="bg-purple-600">Suspendida</Badge>
+                      <Badge className="bg-purple-600 text-xs">Suspendida</Badge>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -800,24 +800,24 @@ function SessionListView({
                           onReactivateSession(session);
                         }}
                         title="Reactivar sesión"
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 sm:px-3"
                       >
-                        <PlayCircle className="h-4 w-4 mr-1" />
-                        Reactivar
+                        <PlayCircle className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-1">Reactivar</span>
                       </Button>
                     </>
                   ) : (
                     <>
                       {isPast ? (
-                        <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300">
-                          Por registrar
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300 text-xs whitespace-nowrap">
+                          Registrar
                         </Badge>
                       ) : isToday ? (
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-300">
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-300 text-xs">
                           Hoy
                         </Badge>
                       ) : (
-                        <Badge variant="secondary">Programada</Badge>
+                        <Badge variant="secondary" className="text-xs">Programada</Badge>
                       )}
                       <Button
                         variant="ghost"
@@ -827,14 +827,14 @@ function SessionListView({
                           onSuspendSession(session);
                         }}
                         title="Suspender sesión"
-                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-2 sm:px-3"
                       >
-                        <PauseCircle className="h-4 w-4 mr-1" />
-                        Suspender
+                        <PauseCircle className="h-4 w-4" />
+                        <span className="hidden sm:inline ml-1">Suspender</span>
                       </Button>
                     </>
                   )}
-                  {!isSuspended && <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                  {!isSuspended && <ChevronRight className="h-5 w-5 text-muted-foreground hidden sm:block" />}
                 </div>
               </div>
             </CardContent>

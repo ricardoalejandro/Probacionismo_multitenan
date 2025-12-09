@@ -59,17 +59,20 @@ export function ResponsiveDialog({
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm transition-opacity"
-        onClick={() => !isMaximized && onOpenChange(false)}
+        onClick={() => onOpenChange(false)}
       />
 
-      {/* Dialog Content */}
+      {/* Dialog Content - Mobile: always fullscreen, Desktop: centered or maximized */}
       <div
         className={cn(
           'fixed z-[101] bg-white shadow-2xl overflow-hidden flex flex-col',
-          'animate-in fade-in-0 duration-[650ms] ease-out',
+          'animate-in fade-in-0 duration-300 ease-out',
+          // Mobile: always fullscreen
+          'inset-0',
+          // Desktop: conditional based on maximized state
           isMaximized
-            ? 'inset-4 rounded-none'
-            : 'inset-0 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[90vw] md:max-w-4xl md:max-h-[90vh] md:rounded-xl'
+            ? 'md:inset-4 md:rounded-lg'
+            : 'md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[90vw] md:max-w-4xl md:max-h-[90vh] md:rounded-xl'
         )}
       >
         {/* Header */}
@@ -79,10 +82,11 @@ export function ResponsiveDialog({
             {description && <p className="text-xs md:text-sm text-neutral-10 mt-1 truncate">{description}</p>}
           </div>
           <div className="flex items-center gap-2 ml-4">
+            {/* Maximize button - only visible on desktop */}
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 hidden md:flex"
               onClick={() => setIsMaximized(!isMaximized)}
               type="button"
             >
