@@ -448,7 +448,7 @@ export function AttendanceSheet({
     }
   };
 
-  // Quick status buttons
+  // Quick status buttons - Solo 3 estados principales
   const QuickStatusButton = ({
     status,
     student,
@@ -468,15 +468,17 @@ export function AttendanceSheet({
               variant={isActive ? 'default' : 'outline'}
               size="icon"
               className={cn(
-                'h-6 w-6 md:h-8 md:w-8 transition-all',
+                // Touch target mínimo 44px para móvil (Apple HIG)
+                'h-11 w-11 md:h-10 md:w-10 transition-all touch-manipulation',
                 isActive && config.bgColor,
                 isActive && config.color,
+                !isActive && 'hover:bg-muted',
                 isReadOnly && 'opacity-50 cursor-not-allowed'
               )}
               disabled={isReadOnly}
               onClick={() => handleStatusChange(student, status)}
             >
-              <Icon className="h-3 w-3 md:h-4 md:w-4" />
+              <Icon className="h-5 w-5 md:h-4 md:w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -507,59 +509,87 @@ export function AttendanceSheet({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={onBack} className="gap-2">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
+      {/* Header - Responsive */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        {/* Back button + Title */}
+        <div className="flex items-center gap-2 md:gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9 md:h-10 md:w-auto md:px-3">
             <ChevronRight className="h-4 w-4 rotate-180" />
-            Volver a sesiones
+            <span className="hidden md:inline ml-2">Volver</span>
           </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg md:text-2xl font-bold">
                 Sesión #{session.sessionNumber}
               </h2>
               {isReadOnly ? (
-                <Badge className="bg-green-600">Dictada</Badge>
+                <Badge className="bg-green-600 text-xs">Dictada</Badge>
               ) : (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300">
-                  Pendiente
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300 text-xs">
+                  Por registrar
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-xs md:text-sm text-muted-foreground truncate">
               {group.name} •{' '}
               {new Date(session.sessionDate).toLocaleDateString('es-ES', {
-                weekday: 'long',
+                weekday: 'short',
                 day: 'numeric',
-                month: 'long',
-                year: 'numeric',
+                month: 'short',
               })}
             </p>
           </div>
         </div>
-
-        {!isReadOnly && (
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={handleSaveExecution} disabled={saving}>
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              Guardar
-            </Button>
-            <Button
-              onClick={() => setCompleteDialogOpen(true)}
-              disabled={attendanceSummary.pendiente > 0}
-            >
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Finalizar Sesión
-            </Button>
-          </div>
-        )}
       </div>
+
+      {/* Floating Action Bar para móvil */}
+      {!isReadOnly && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t p-3 flex gap-2 md:hidden shadow-lg">
+          <Button 
+            variant="secondary" 
+            onClick={handleSaveExecution} 
+            disabled={saving}
+            className="flex-1 h-12"
+          >
+            {saving ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Save className="h-5 w-5 mr-2" />
+            )}
+            Guardar
+          </Button>
+          <Button
+            onClick={() => setCompleteDialogOpen(true)}
+            disabled={attendanceSummary.pendiente > 0}
+            className="flex-1 h-12"
+          >
+            <CheckCircle2 className="h-5 w-5 mr-2" />
+            Finalizar
+          </Button>
+        </div>
+      )}
+
+      {/* Desktop Action Buttons */}
+      {!isReadOnly && (
+        <div className="hidden md:flex items-center justify-end gap-2">
+          <Button variant="secondary" onClick={handleSaveExecution} disabled={saving}>
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Guardar
+          </Button>
+          <Button
+            onClick={() => setCompleteDialogOpen(true)}
+            disabled={attendanceSummary.pendiente > 0}
+          >
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            Finalizar Sesión
+          </Button>
+        </div>
+      )}
 
       {/* Session Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -692,20 +722,41 @@ export function AttendanceSheet({
         </Card>
       </div>
 
-      {/* Attendance Summary */}
+      {/* Attendance Summary - Responsive */}
       <Card>
-        <CardContent className="py-4">
-          <div className="flex items-center justify-around">
-            {Object.entries(ATTENDANCE_STATUS_CONFIG).map(([status, config]) => {
-              const count = attendanceSummary[status as AttendanceStatus];
+        <CardContent className="py-3 md:py-4">
+          {/* Mobile: 3 columnas compactas */}
+          <div className="grid grid-cols-3 gap-2 md:hidden">
+            {(['asistio', 'tarde', 'no_asistio'] as AttendanceStatus[]).map((status) => {
+              const config = ATTENDANCE_STATUS_CONFIG[status];
+              const count = attendanceSummary[status];
               const Icon = config.icon;
 
               return (
-                <div key={status} className="flex items-center gap-2">
-                  <div className={cn('p-2 rounded-full', config.bgColor)}>
+                <div key={status} className="flex flex-col items-center p-2 rounded-lg bg-muted/30">
+                  <div className={cn('p-1.5 rounded-full mb-1', config.bgColor)}>
                     <Icon className={cn('h-4 w-4', config.color)} />
                   </div>
-                  <div className="text-center">
+                  <p className="text-xl font-bold">{count}</p>
+                  <p className="text-[10px] text-muted-foreground text-center">{config.label}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop: 3 estados principales en fila */}
+          <div className="hidden md:flex items-center justify-center gap-8">
+            {(['asistio', 'tarde', 'no_asistio'] as AttendanceStatus[]).map((status) => {
+              const config = ATTENDANCE_STATUS_CONFIG[status];
+              const count = attendanceSummary[status];
+              const Icon = config.icon;
+
+              return (
+                <div key={status} className="flex items-center gap-3">
+                  <div className={cn('p-2 rounded-full', config.bgColor)}>
+                    <Icon className={cn('h-5 w-5', config.color)} />
+                  </div>
+                  <div>
                     <p className="text-2xl font-bold">{count}</p>
                     <p className="text-xs text-muted-foreground">{config.label}</p>
                   </div>
@@ -812,28 +863,26 @@ export function AttendanceSheet({
                       )}
                     </div>
 
-                    {/* Actions row */}
-                    <div className="flex items-center justify-end gap-1 md:gap-2">
-                      {/* Quick status buttons */}
-                      <div className="flex items-center gap-0.5 md:gap-1 border rounded-lg p-0.5 md:p-1">
+                    {/* Actions row - Solo 3 estados principales */}
+                    <div className="flex items-center justify-between md:justify-end gap-2">
+                      {/* Quick status buttons - 3 estados */}
+                      <div className="flex items-center gap-1 md:gap-1.5 bg-muted/50 rounded-xl p-1">
                         <QuickStatusButton status="asistio" student={student} />
                         <QuickStatusButton status="tarde" student={student} />
                         <QuickStatusButton status="no_asistio" student={student} />
-                        <QuickStatusButton status="justificado" student={student} />
-                        <QuickStatusButton status="permiso" student={student} />
                       </div>
 
                       {/* Observations button */}
                       <Button
                         variant="secondary"
                         size="icon"
-                        className="h-7 w-7 md:h-8 md:w-8 flex-shrink-0"
+                        className="h-11 w-11 md:h-10 md:w-10 flex-shrink-0 touch-manipulation"
                         onClick={() => {
                           setSelectedStudent(student);
                           setObservationOpen(true);
                         }}
                       >
-                        <MessageSquarePlus className="h-3 w-3 md:h-4 md:w-4" />
+                        <MessageSquarePlus className="h-5 w-5 md:h-4 md:w-4" />
                       </Button>
                     </div>
                   </div>
