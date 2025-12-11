@@ -453,10 +453,26 @@ export const groupRoutes: FastifyPluginAsync = async (fastify) => {
 
   // PUT /api/groups/:id - Actualizar grupo
   fastify.put('/:id', {
-    preHandler: [fastify.authenticate, checkPermission('groups', 'edit')]
+    preHandler: [fastify.authenticate]
   }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
+
+      // Obtener branchId del grupo para verificar permisos
+      const [group] = await db.select({ branchId: classGroups.branchId }).from(classGroups).where(eq(classGroups.id, id)).limit(1);
+      if (!group) {
+        return reply.code(404).send({ error: 'Grupo no encontrado' });
+      }
+
+      // Verificar permisos manualmente
+      const user = (request.user as any);
+      if (user.userType !== 'admin') {
+        (request.query as any).branchId = group.branchId;
+        const permissionCheck = checkPermission('groups', 'edit');
+        const result = await permissionCheck(request, reply);
+        if (result) return result;
+      }
+
       const validatedData = groupCreateSchema.partial().parse(request.body);
       const { name, description, recurrence, courses: coursesInput, sessions: sessionsInput } = validatedData;
 
@@ -553,15 +569,13 @@ export const groupRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/groups/:id/enroll - Inscribir probacionistas
   fastify.post('/:id/enroll', {
-    preHandler: [fastify.authenticate, checkPermission('groups', 'edit')]
+    preHandler: [fastify.authenticate]
   }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const validatedData = enrollSchema.parse(request.body);
-      const { studentIds, enrollmentDate } = validatedData;
 
-      // Validar que el grupo esté activo
-      const [group] = await db.select({ status: classGroups.status })
+      // Obtener branchId del grupo para verificar permisos
+      const [group] = await db.select({ branchId: classGroups.branchId, status: classGroups.status })
         .from(classGroups)
         .where(eq(classGroups.id, id))
         .limit(1);
@@ -569,6 +583,18 @@ export const groupRoutes: FastifyPluginAsync = async (fastify) => {
       if (!group) {
         return reply.code(404).send({ error: 'Grupo no encontrado' });
       }
+
+      // Verificar permisos manualmente
+      const user = (request.user as any);
+      if (user.userType !== 'admin') {
+        (request.query as any).branchId = group.branchId;
+        const permissionCheck = checkPermission('groups', 'edit');
+        const result = await permissionCheck(request, reply);
+        if (result) return result;
+      }
+
+      const validatedData = enrollSchema.parse(request.body);
+      const { studentIds, enrollmentDate } = validatedData;
 
       if (group.status !== 'active') {
         return reply.code(400).send({
