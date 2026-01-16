@@ -1,24 +1,5 @@
+
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:17-alpine
-    container_name: multitenant_postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-multitenant_db}
-    # ports:
-    #   - "${POSTGRES_EXTERNAL_PORT:-5432}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - multitenant-network
-    restart: unless-stopped
 
   # Redis Cache
   redis:
@@ -50,7 +31,7 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${BACKEND_PORT:-3000}
       HOST: 0.0.0.0
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-multitenant_db}
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:${REDIS_PORT:-6379}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5000}
@@ -60,8 +41,6 @@ services:
     ports:
       - "127.0.0.1:3000:${BACKEND_PORT:-3000}"
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
@@ -109,5 +88,4 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
   redis_data:
