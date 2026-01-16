@@ -51,6 +51,7 @@ services:
       start_period: 40s
     networks:
       - multitenant-network
+      - supabase-network
     restart: unless-stopped
 
   # Next.js Frontend (PRODUCTION MODE)
@@ -86,6 +87,9 @@ services:
 networks:
   multitenant-network:
     driver: bridge
+  supabase-network:
+    external: true
+    name: supabase-supabase-lfqzsu
 
 volumes:
   redis_data:
