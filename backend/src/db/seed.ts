@@ -7,9 +7,10 @@ async function seed() {
   console.log('🌱 Seeding database...');
 
   try {
-    // Create default admin user
-    const passwordHash = await bcrypt.hash('escolastica123', 10);
-    
+    // Create default admin user - CAMBIAR ESTA CONTRASEÑA DESPUÉS DEL PRIMER LOGIN
+    const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'ChangeMe@FirstLogin2024!';
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
+
     const [admin] = await db.insert(users).values({
       username: 'admin',
       passwordHash,

@@ -209,8 +209,21 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     };
   });
 
-  // POST /api/auth/test-email - Endpoint de prueba para diagnóstico (solo en desarrollo)
-  fastify.post('/test-email', async (request, reply) => {
+  // POST /api/auth/test-email - Endpoint de prueba para diagnóstico (SOLO DESARROLLO + ADMIN)
+  fastify.post('/test-email', {
+    onRequest: [fastify.authenticate],
+  }, async (request, reply) => {
+    // Solo permitir en desarrollo
+    if (process.env.NODE_ENV === 'production') {
+      return reply.code(403).send({ error: 'Este endpoint está deshabilitado en producción' });
+    }
+
+    // Solo admins pueden usar este endpoint
+    const currentUser = request.user as any;
+    if (currentUser.userType !== 'admin') {
+      return reply.code(403).send({ error: 'Solo administradores pueden usar este endpoint' });
+    }
+
     const { to } = request.body as { to: string };
 
     if (!to) {

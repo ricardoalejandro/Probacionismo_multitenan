@@ -80,8 +80,13 @@ async function start() {
     credentials: true,
   });
 
+  // JWT - REQUIERE configuración obligatoria
+  if (!process.env.JWT_SECRET) {
+    throw new Error('❌ JWT_SECRET no está configurado. Es obligatorio para producción.');
+  }
+
   await fastify.register(jwt, {
-    secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
+    secret: process.env.JWT_SECRET,
   });
 
   await fastify.register(rateLimit, {
@@ -96,39 +101,42 @@ async function start() {
     },
   });
 
-  // Swagger documentation
-  await fastify.register(swagger, {
-    openapi: {
-      info: {
-        title: 'Multi-Tenant Academic System API',
-        description: 'API documentation for the academic management system',
-        version: '1.0.0',
-      },
-      servers: [
-        {
-          url: `http://localhost:${PORT}`,
-          description: 'Development server',
+  // Swagger documentation - SOLO EN DESARROLLO
+  if (process.env.NODE_ENV !== 'production') {
+    await fastify.register(swagger, {
+      openapi: {
+        info: {
+          title: 'Multi-Tenant Academic System API',
+          description: 'API documentation for the academic management system',
+          version: '1.0.0',
         },
-      ],
-      components: {
-        securitySchemes: {
-          bearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT',
+        servers: [
+          {
+            url: `http://localhost:${PORT}`,
+            description: 'Development server',
+          },
+        ],
+        components: {
+          securitySchemes: {
+            bearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT',
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  await fastify.register(swaggerUi, {
-    routePrefix: '/docs',
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: false,
-    },
-  });
+    await fastify.register(swaggerUi, {
+      routePrefix: '/docs',
+      uiConfig: {
+        docExpansion: 'list',
+        deepLinking: false,
+      },
+    });
+    console.log('📚 Swagger docs enabled at /docs (development only)');
+  }
 
   // Register authentication decorator
   fastify.decorate('authenticate', async function (request: any, reply: any) {
