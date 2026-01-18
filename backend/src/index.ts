@@ -151,6 +151,11 @@ async function start() {
   fastify.get('/health', async () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   });
+  
+  // Health check también en /api/health para acceso externo
+  fastify.get('/api/health', async () => {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  });
 
   // Register routes
   await fastify.register(authRoutes, { prefix: '/api/auth' });
