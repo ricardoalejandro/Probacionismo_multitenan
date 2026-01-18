@@ -133,11 +133,46 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
     loadInstructors();
   }, [loadInstructors]);
 
+  const handleDniInput = (value: string) => {
+    setFormData(prev => {
+      // Si es DNI, solo números y max 8
+      if (prev.documentType === 'DNI') {
+        const numericValue = value.replace(/[^0-9]/g, '').slice(0, 8);
+        if (formErrors.dni && numericValue.length === 8) {
+          setFormErrors(curr => ({ ...curr, dni: '' }));
+        }
+        return { ...prev, dni: numericValue };
+      } else {
+        // Para otros, alfanumérico y max 12
+        const alphanumericValue = value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+        if (formErrors.dni && alphanumericValue.length >= 8) {
+          setFormErrors(curr => ({ ...curr, dni: '' }));
+        }
+        return { ...prev, dni: alphanumericValue };
+      }
+    });
+  };
+
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!formData.gender) errors.gender = 'El género es obligatorio';
     if (!formData.documentType) errors.documentType = 'El tipo de documento es obligatorio';
-    if (!formData.dni) errors.dni = 'El número de documento es obligatorio';
+
+    // Validación de documento
+    if (!formData.dni) {
+      errors.dni = 'El número de documento es obligatorio';
+    } else if (formData.documentType === 'DNI') {
+      if (!/^\d{8}$/.test(formData.dni)) {
+        errors.dni = 'El DNI debe tener exactamente 8 dígitos numéricos';
+      }
+    } else {
+      if (formData.dni.length < 8) {
+        errors.dni = `El ${formData.documentType} debe tener al menos 8 caracteres`;
+      } else if (!/^[a-zA-Z0-9]+$/.test(formData.dni)) {
+        errors.dni = `El ${formData.documentType} debe ser alfanumérico`;
+      }
+    }
+
     if (!formData.firstName) errors.firstName = 'El nombre es obligatorio';
     if (!formData.paternalLastName) errors.paternalLastName = 'El apellido paterno es obligatorio';
 
@@ -421,7 +456,10 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
                 <Label className="text-xs">Tipo de Documento *</Label>
                 <Select
                   value={formData.documentType}
-                  onValueChange={(value) => setFormData({ ...formData, documentType: value })}
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ ...prev, documentType: value, dni: '' }));
+                    setFormErrors(prev => ({ ...prev, dni: '' }));
+                  }}
                   required
                 >
                   <SelectTrigger className="h-11">
@@ -438,10 +476,11 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
                 <Label className="text-xs">Número de Documento *</Label>
                 <Input
                   value={formData.dni}
-                  onChange={(e) => setFormData({ ...formData, dni: e.target.value })}
+                  onChange={(e) => handleDniInput(e.target.value)}
                   required
                   className={`h-11 ${formErrors.dni ? 'border-red-500' : ''}`}
                   placeholder="Ej: 12345678"
+                  maxLength={formData.documentType === 'DNI' ? 8 : 12}
                 />
                 {formErrors.dni && <p className="text-xs text-red-500 mt-1">{formErrors.dni}</p>}
               </div>
@@ -498,9 +537,9 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
               </div>
               <div>
                 <Label className="text-xs">Apellido Materno</Label>
-                <Input 
-                  value={formData.maternalLastName} 
-                  onChange={(e) => setFormData({ ...formData, maternalLastName: e.target.value })} 
+                <Input
+                  value={formData.maternalLastName}
+                  onChange={(e) => setFormData({ ...formData, maternalLastName: e.target.value })}
                   className="h-11"
                   placeholder="Apellido materno"
                 />
@@ -517,19 +556,19 @@ export default function InstructorsModule({ branchId }: { branchId: string }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Email</Label>
-                <Input 
-                  type="email" 
-                  value={formData.email} 
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="h-11"
                   placeholder="correo@ejemplo.com"
                 />
               </div>
               <div>
                 <Label className="text-xs">Teléfono</Label>
-                <Input 
-                  value={formData.phone} 
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="h-11"
                   placeholder="999 999 999"
                 />

@@ -9,12 +9,14 @@ async function seed() {
   try {
     // Create default admin user - CAMBIAR ESTA CONTRASEÑA DESPUÉS DEL PRIMER LOGIN
     const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'ChangeMe@FirstLogin2024!';
+    const adminEmail = process.env.ADMIN_INITIAL_EMAIL || 'admin@escolastica.com';
+    const adminUsername = process.env.ADMIN_INITIAL_USERNAME || 'admin';
     const passwordHash = await bcrypt.hash(adminPassword, 10);
 
     const [admin] = await db.insert(users).values({
-      username: 'admin',
+      username: adminUsername,
       passwordHash,
-      email: 'admin@escolastica.com',
+      email: adminEmail,
       userType: 'admin',
     }).returning();
 

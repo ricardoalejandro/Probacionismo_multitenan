@@ -68,6 +68,8 @@ export const students = pgTable('students', {
   department: text('department'),
   province: text('province'),
   district: text('district'),
+  guardianName: text('guardian_name'),
+  guardianPhone: text('guardian_phone'),
   isTestData: boolean('is_test_data').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

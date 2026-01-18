@@ -75,7 +75,28 @@ export function CounselingFormDialog({ open, onOpenChange, counseling, studentId
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+
+    // Validación de campos obligatorios
+    if (!formData.instructorId) {
+      toast.error('Debe seleccionar un instructor');
+      return;
+    }
+    if (!formData.branchId) {
+      toast.error('Debe seleccionar una sede');
+      return;
+    }
+    if (!formData.observations || formData.observations.trim() === '') {
+      toast.error('Las observaciones son obligatorias');
+      return;
+    }
+
+    // Enviar con valor por defecto si no hay grupo seleccionado
+    const dataToSend = {
+      ...formData,
+      groupName: formData.groupName || 'Sin Grupo Asignado',
+    };
+
+    onSave(dataToSend);
   };
 
   return (
@@ -129,7 +150,7 @@ export function CounselingFormDialog({ open, onOpenChange, counseling, studentId
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="groupName">Nombre del Grupo *</Label>
+            <Label htmlFor="groupName">Nombre del Grupo</Label>
             <Button
               type="button"
               variant="secondary"
@@ -147,7 +168,7 @@ export function CounselingFormDialog({ open, onOpenChange, counseling, studentId
               onValueChange={(value) => setFormData({ ...formData, groupName: value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Seleccionar grupo (opcional)" />
+                <SelectValue placeholder="Sin Grupo (opcional)" />
               </SelectTrigger>
               <SelectContent>
                 {groups.map((group) => (

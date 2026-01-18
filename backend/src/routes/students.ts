@@ -8,7 +8,10 @@ import { checkPermission } from '../middleware/checkPermission';
 // Base validation schema (sin branchId ni status, solo datos globales del probacionista)
 const studentBaseSchema = z.object({
   documentType: z.enum(['DNI', 'CNE', 'Pasaporte']),
-  dni: z.string().regex(/^\d{8}$/, 'DNI debe tener 8 dígitos numéricos'),
+  dni: z.string()
+    .min(8, 'El documento debe tener al menos 8 caracteres')
+    .max(12, 'El documento no puede tener más de 12 caracteres')
+    .regex(/^[a-zA-Z0-9]+$/, 'El documento debe ser alfanumérico'),
   gender: z.enum(['Masculino', 'Femenino', 'Otro']),
   firstName: z.string().min(1, 'Nombre es requerido'),
   paternalLastName: z.string().min(1, 'Apellido paterno es requerido'),
@@ -20,6 +23,8 @@ const studentBaseSchema = z.object({
   department: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
   province: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
   district: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
+  guardianName: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
+  guardianPhone: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
 });
 
 // Schema para creación (incluye branchId y admissionDate)
@@ -34,8 +39,8 @@ const studentCreateSchema = studentBaseSchema.extend({
   { message: 'La fecha de nacimiento debe ser anterior a hoy' }
 );
 
-// Schema para actualización (parcial)
-const studentUpdateSchema = studentBaseSchema.partial();
+// Schema para actualización (parcial, ignora campos extra como branchId, admissionType)
+const studentUpdateSchema = studentBaseSchema.partial().strip();
 
 // Schema para importar estudiante a otra filial
 const studentImportSchema = z.object({
@@ -125,6 +130,8 @@ export const studentRoutes: FastifyPluginAsync = async (fastify) => {
           department: students.department,
           province: students.province,
           district: students.district,
+          guardianName: students.guardianName,
+          guardianPhone: students.guardianPhone,
           createdAt: students.createdAt,
           updatedAt: students.updatedAt,
           // Desde student_branches
@@ -178,6 +185,8 @@ export const studentRoutes: FastifyPluginAsync = async (fastify) => {
         department: students.department,
         province: students.province,
         district: students.district,
+        guardianName: students.guardianName,
+        guardianPhone: students.guardianPhone,
         createdAt: students.createdAt,
         updatedAt: students.updatedAt,
         status: studentBranches.status,

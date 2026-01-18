@@ -9,7 +9,10 @@ import { checkPermission } from '../middleware/checkPermission';
 const instructorBaseSchema = z.object({
   branchId: z.string().uuid(),
   documentType: z.enum(['DNI', 'CNE', 'Pasaporte']),
-  dni: z.string().regex(/^\d{8}$/, 'DNI debe tener exactamente 8 dígitos numéricos'),
+  dni: z.string()
+    .min(8, 'El documento debe tener al menos 8 caracteres')
+    .max(12, 'El documento no puede tener más de 12 caracteres')
+    .regex(/^[a-zA-Z0-9]+$/, 'El documento debe ser alfanumérico'),
   gender: z.enum(['Masculino', 'Femenino', 'Otro']),
   firstName: z.string().min(1, 'Nombre es requerido'),
   paternalLastName: z.string().min(1, 'Apellido paterno es requerido'),

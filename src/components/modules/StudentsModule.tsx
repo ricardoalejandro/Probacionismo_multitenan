@@ -54,6 +54,8 @@ interface Student {
   department?: string | null;
   province?: string | null;
   district?: string | null;
+  guardianName?: string | null;
+  guardianPhone?: string | null;
   // Campos de student_branches (por filial)
   status: 'Alta' | 'Baja';
   admissionDate: string;
@@ -119,6 +121,8 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
     department: '',
     province: '',
     district: '',
+    guardianName: '',
+    guardianPhone: '',
     birthDate: '',
     admissionDate: new Date().toISOString().split('T')[0],
     admissionType: 'Nuevo', // Nuevo, Recuperado, Traslado
@@ -133,6 +137,19 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
     totalPages: 0,
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Detectar si es menor de edad
+  const isMinor = useMemo(() => {
+    if (!formData.birthDate) return false;
+    const birth = new Date(formData.birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age < 18;
+  }, [formData.birthDate]);
 
   // Estados para Ubigeo (Cascading Selects)
   const [departments, setDepartments] = useState<any[]>([]);
@@ -282,20 +299,43 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
   }, [loadStudents]);
 
   const handleDniInput = (value: string) => {
-    const numericValue = value.replace(/[^0-9]/g, '').slice(0, 8);
-    setFormData({ ...formData, dni: numericValue });
+    setFormData(prev => {
+      // Si es DNI, solo números y max 8
+      if (prev.documentType === 'DNI') {
+        const numericValue = value.replace(/[^0-9]/g, '').slice(0, 8);
 
-    if (formErrors.dni && numericValue.length === 8) {
-      setFormErrors({ ...formErrors, dni: '' });
-    }
+        // Auto-clear error if valid length
+        if (formErrors.dni && numericValue.length === 8) {
+          setFormErrors(curr => ({ ...curr, dni: '' }));
+        }
+        return { ...prev, dni: numericValue };
+      } else {
+        // Para otros, alfanumérico y max 12
+        const alphanumericValue = value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
+
+        if (formErrors.dni && alphanumericValue.length >= 8) {
+          setFormErrors(curr => ({ ...curr, dni: '' }));
+        }
+        return { ...prev, dni: alphanumericValue };
+      }
+    });
   };
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
-    // DNI: debe ser exactamente 8 dígitos
-    if (!/^\d{8}$/.test(formData.dni)) {
-      errors.dni = 'El DNI debe tener exactamente 8 dígitos';
+    // Validación de documento
+    if (formData.documentType === 'DNI') {
+      if (!/^\d{8}$/.test(formData.dni)) {
+        errors.dni = 'El DNI debe tener exactamente 8 dígitos numéricos';
+      }
+    } else {
+      // CNE o Pasaporte: alfanumérico, min 8, max 12
+      if (!formData.dni || formData.dni.length < 8) {
+        errors.dni = `El ${formData.documentType} debe tener al menos 8 caracteres`;
+      } else if (!/^[a-zA-Z0-9]+$/.test(formData.dni)) {
+        errors.dni = `El ${formData.documentType} debe ser alfanumérico`;
+      }
     }
 
     // Fechas: birthDate < admissionDate
@@ -305,6 +345,16 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
 
       if (birthDate >= admissionDate) {
         errors.birthDate = 'La fecha de nacimiento debe ser anterior a la fecha de admisión';
+      }
+    }
+
+    // Validar Apoderado si es menor de edad
+    if (isMinor) {
+      if (!formData.guardianName || formData.guardianName.trim() === '') {
+        errors.guardianName = 'El nombre del apoderado es requerido para menores de edad';
+      }
+      if (!formData.guardianPhone || formData.guardianPhone.trim() === '') {
+        errors.guardianPhone = 'El teléfono del apoderado es requerido';
       }
     }
 
@@ -389,6 +439,8 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
       department: student.department || '',
       province: student.province || '',
       district: student.district || '',
+      guardianName: student.guardianName || '',
+      guardianPhone: student.guardianPhone || '',
       birthDate: student.birthDate ? student.birthDate.split('T')[0] : '',
       admissionDate: student.admissionDate
         ? student.admissionDate.split('T')[0]
@@ -413,6 +465,8 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
       department: '',
       province: '',
       district: '',
+      guardianName: '',
+      guardianPhone: '',
       birthDate: '',
       admissionDate: new Date().toISOString().split('T')[0],
       admissionType: 'Nuevo',
@@ -624,6 +678,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
             </div>
           </div>
         </div>
+
       </div>
 
       {/* CONTENT SCROLLEABLE - Tabla con scroll independiente */}
@@ -743,9 +798,10 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
                 <Label className="text-xs">Tipo</Label>
                 <Select
                   value={formData.documentType}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, documentType: value })
-                  }
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ ...prev, documentType: value, dni: '' }));
+                    setFormErrors(prev => ({ ...prev, dni: '' }));
+                  }}
                 >
                   <SelectTrigger className="h-11">
                     <SelectValue placeholder="Tipo" />
@@ -763,7 +819,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
                   value={formData.dni}
                   onChange={(e) => handleDniInput(e.target.value)}
                   placeholder="12345678"
-                  maxLength={formData.documentType === 'Pasaporte' ? 12 : 8}
+                  maxLength={formData.documentType === 'DNI' ? 8 : 12}
                   required
                   className={`h-11 ${formErrors.dni ? 'border-red-500' : ''}`}
                 />
@@ -868,6 +924,46 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
               </div>
             </div>
           </div>
+
+          {/* SECCIÓN OPCIONAL: Apoderado (si es menor de edad) */}
+          {isMinor && (
+            <div className="space-y-3 bg-orange-50 p-4 rounded-lg border border-orange-100">
+              <h3 className="text-sm font-semibold text-orange-800 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-orange-200 text-orange-800 text-xs flex items-center justify-center">!</span>
+                Datos del Apoderado (Menor de Edad)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-orange-900">Nombre Completo *</Label>
+                  <Input
+                    value={formData.guardianName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, guardianName: e.target.value })
+                    }
+                    placeholder="Padre, madre o tutor"
+                    className={`h-11 bg-white ${formErrors.guardianName ? 'border-red-500' : ''}`}
+                  />
+                  {formErrors.guardianName && (
+                    <p className="text-xs text-red-500 mt-1">{formErrors.guardianName}</p>
+                  )}
+                </div>
+                <div>
+                  <Label className="text-xs text-orange-900">Teléfono *</Label>
+                  <Input
+                    value={formData.guardianPhone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, guardianPhone: e.target.value })
+                    }
+                    placeholder="Teléfono de contacto"
+                    className={`h-11 bg-white ${formErrors.guardianPhone ? 'border-red-500' : ''}`}
+                  />
+                  {formErrors.guardianPhone && (
+                    <p className="text-xs text-red-500 mt-1">{formErrors.guardianPhone}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* SECCIÓN 3: Contacto */}
           <div className="space-y-3">

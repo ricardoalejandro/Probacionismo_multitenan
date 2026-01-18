@@ -18,8 +18,10 @@ services:
     networks:
       - multitenant-network
     restart: unless-stopped
-    ports:
-      - "${POSTGRES_EXTERNAL_PORT:-5432}:5432"
+    # Puerto solo accesible internamente (red Docker)
+    # Para acceso externo en desarrollo, descomentar:
+    # ports:
+    #   - "${POSTGRES_EXTERNAL_PORT:-5432}:5432"
 
   # Redis Cache
   redis:
@@ -36,8 +38,10 @@ services:
     networks:
       - multitenant-network
     restart: unless-stopped
-    ports:
-      - "${REDIS_EXTERNAL_PORT:-6379}:6379"
+    # Puerto solo accesible internamente (red Docker)
+    # Para acceso externo en desarrollo, descomentar:
+    # ports:
+    #   - "${REDIS_EXTERNAL_PORT:-6379}:6379"
 
   # Fastify Backend API
   backend:
@@ -56,7 +60,8 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
-    # ports expuestos internamente, Traefik maneja el routing
+    # Puerto expuesto para desarrollo local
+    # En producción con reverse proxy (Nginx/Traefik), comentar esta línea
     ports:
       - "${BACKEND_EXTERNAL_PORT:-3000}:3000"
     depends_on:
