@@ -8,10 +8,7 @@ import { checkPermission } from '../middleware/checkPermission';
 // Base validation schema (sin branchId ni status, solo datos globales del probacionista)
 const studentBaseSchema = z.object({
   documentType: z.enum(['DNI', 'CNE', 'Pasaporte']),
-  dni: z.string()
-    .min(8, 'El documento debe tener al menos 8 caracteres')
-    .max(12, 'El documento no puede tener más de 12 caracteres')
-    .regex(/^[a-zA-Z0-9]+$/, 'El documento debe ser alfanumérico'),
+  dni: z.string(),
   gender: z.enum(['Masculino', 'Femenino', 'Otro']),
   firstName: z.string().min(1, 'Nombre es requerido'),
   paternalLastName: z.string().min(1, 'Apellido paterno es requerido'),
@@ -27,10 +24,68 @@ const studentBaseSchema = z.object({
   guardianPhone: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
 });
 
+// Función de validación condicional de documentos
+const validateDocumentNumber = (data: { documentType: string; dni: string }, ctx: z.RefinementCtx) => {
+  if (data.documentType === 'DNI') {
+    // DNI: exactamente 8 dígitos numéricos
+    if (!/^\d{8}$/.test(data.dni)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El DNI debe tener exactamente 8 dígitos numéricos',
+        path: ['dni'],
+      });
+    }
+  } else if (data.documentType === 'CNE') {
+    // CNE: alfanumérico, máximo 12 caracteres
+    if (!data.dni || data.dni.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El CNE es requerido',
+        path: ['dni'],
+      });
+    } else if (data.dni.length > 12) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El CNE no puede tener más de 12 caracteres',
+        path: ['dni'],
+      });
+    } else if (!/^[a-zA-Z0-9]+$/.test(data.dni)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El CNE debe ser alfanumérico',
+        path: ['dni'],
+      });
+    }
+  } else if (data.documentType === 'Pasaporte') {
+    // Pasaporte: alfanumérico, máximo 12 caracteres
+    if (!data.dni || data.dni.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El Pasaporte es requerido',
+        path: ['dni'],
+      });
+    } else if (data.dni.length > 12) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El Pasaporte no puede tener más de 12 caracteres',
+        path: ['dni'],
+      });
+    } else if (!/^[a-zA-Z0-9]+$/.test(data.dni)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El Pasaporte debe ser alfanumérico',
+        path: ['dni'],
+      });
+    }
+  }
+};
+
 // Schema para creación (incluye branchId y admissionDate)
 const studentCreateSchema = studentBaseSchema.extend({
   branchId: z.string().uuid(),
   admissionDate: z.string().optional(),
+}).superRefine((data, ctx) => {
+  validateDocumentNumber(data, ctx);
 }).refine(
   (data) => {
     if (!data.birthDate) return true;

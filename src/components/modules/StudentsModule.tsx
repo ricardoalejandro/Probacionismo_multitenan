@@ -310,10 +310,10 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
         }
         return { ...prev, dni: numericValue };
       } else {
-        // Para otros, alfanumérico y max 12
+        // Para CNE y Pasaporte: alfanumérico y max 12
         const alphanumericValue = value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
 
-        if (formErrors.dni && alphanumericValue.length >= 8) {
+        if (formErrors.dni && alphanumericValue.length > 0) {
           setFormErrors(curr => ({ ...curr, dni: '' }));
         }
         return { ...prev, dni: alphanumericValue };
@@ -324,17 +324,28 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
-    // Validación de documento
+    // Validación de documento según tipo
     if (formData.documentType === 'DNI') {
       if (!/^\d{8}$/.test(formData.dni)) {
         errors.dni = 'El DNI debe tener exactamente 8 dígitos numéricos';
       }
-    } else {
-      // CNE o Pasaporte: alfanumérico, min 8, max 12
-      if (!formData.dni || formData.dni.length < 8) {
-        errors.dni = `El ${formData.documentType} debe tener al menos 8 caracteres`;
+    } else if (formData.documentType === 'CNE') {
+      // CNE: alfanumérico, máximo 12 caracteres
+      if (!formData.dni || formData.dni.length === 0) {
+        errors.dni = 'El CNE es requerido';
+      } else if (formData.dni.length > 12) {
+        errors.dni = 'El CNE no puede tener más de 12 caracteres';
       } else if (!/^[a-zA-Z0-9]+$/.test(formData.dni)) {
-        errors.dni = `El ${formData.documentType} debe ser alfanumérico`;
+        errors.dni = 'El CNE debe ser alfanumérico';
+      }
+    } else if (formData.documentType === 'Pasaporte') {
+      // Pasaporte: alfanumérico, máximo 12 caracteres
+      if (!formData.dni || formData.dni.length === 0) {
+        errors.dni = 'El Pasaporte es requerido';
+      } else if (formData.dni.length > 12) {
+        errors.dni = 'El Pasaporte no puede tener más de 12 caracteres';
+      } else if (!/^[a-zA-Z0-9]+$/.test(formData.dni)) {
+        errors.dni = 'El Pasaporte debe ser alfanumérico';
       }
     }
 

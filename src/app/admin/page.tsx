@@ -19,24 +19,24 @@ export default function AdminPage() {
     // Verificar que el usuario es admin
     const checkAuth = () => {
       const userStr = localStorage.getItem('user');
-      
+
       if (!userStr) {
         console.log('❌ No user in localStorage, redirecting to login');
         router.replace('/login');
         return;
       }
-      
+
       try {
         const user = JSON.parse(userStr);
         console.log('👤 User data:', user);
         console.log('🔐 UserType:', user.userType);
-        
+
         if (user.userType !== 'admin') {
           console.log('❌ User is not admin, redirecting to dashboard');
           router.replace('/dashboard');
           return;
         }
-        
+
         console.log('✅ User is authorized');
         setIsAuthorized(true);
       } catch (error) {
@@ -91,13 +91,7 @@ export default function AdminPage() {
       icon: Shield,
       path: '/admin/roles',
     },
-    {
-      id: 'smtp',
-      title: 'Configuración SMTP',
-      description: 'Configurar servidor de correo electrónico',
-      icon: Mail,
-      path: '/admin/smtp',
-    },
+
     {
       id: 'templates',
       title: 'Plantillas de Cursos',
@@ -177,8 +171,8 @@ export default function AdminPage() {
                         </p>
                       </div>
                     </div>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       className="group-hover:bg-accent-9 group-hover:text-white group-hover:border-accent-9 transition-colors"
                     >
@@ -207,8 +201,7 @@ export default function AdminPage() {
                   </h3>
                   <p className="text-sm text-gray-500">
                     Desde aquí puedes gestionar todos los aspectos críticos del sistema: crear y configurar
-                    filiales, administrar usuarios y sus permisos, definir roles personalizados, y configurar
-                    el servidor SMTP para el envío de correos electrónicos.
+                    filiales, administrar usuarios y sus permisos, y definir roles personalizados.
                   </p>
                 </div>
               </div>
