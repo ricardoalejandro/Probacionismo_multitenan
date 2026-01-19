@@ -1,6 +1,6 @@
 'use client';
 
-import { Edit, History, RefreshCw, GraduationCap, User, Eye, MoreVertical } from 'lucide-react';
+import { Edit, History, RefreshCw, GraduationCap, User, Eye, MoreVertical, BadgeCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -29,6 +29,7 @@ interface Student {
   gender: string;
   birthDate: string | null;
   documentType: string;
+  isDniVerified?: boolean;
   status: 'Alta' | 'Baja';
   admissionDate: string;
 }
@@ -83,6 +84,18 @@ export function StudentModuleCardsView({ students, onView, onEdit, onChangeStatu
               <Badge variant={student.status === 'Alta' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
                 {student.status}
               </Badge>
+              {student.isDniVerified && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <BadgeCheck className="h-4 w-4 text-accent-9" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>DNI Verificado</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
 
             {/* Info compacta en línea */}
@@ -174,6 +187,18 @@ export function StudentModuleCompactView({ students, onView, onEdit, onChangeSta
                 <Badge variant={student.status === 'Alta' ? 'default' : 'secondary'} className="shrink-0 text-[10px]">
                   {student.status}
                 </Badge>
+                {student.isDniVerified && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <BadgeCheck className="h-4 w-4 text-accent-9" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>DNI Verificado</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
               <div className="flex items-center gap-3 text-xs text-neutral-10">
                 <span>{student.dni}</span>
@@ -262,9 +287,23 @@ export function StudentModuleListView({ students, onView, onEdit, onChangeStatus
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant={student.status === 'Alta' ? 'default' : 'secondary'}>
-                  {student.status}
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <Badge variant={student.status === 'Alta' ? 'default' : 'secondary'}>
+                    {student.status}
+                  </Badge>
+                  {student.isDniVerified && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <BadgeCheck className="h-4 w-4 text-accent-9" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>DNI Verificado</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
               </TableCell>
               <TableCell>
                 {new Date(student.admissionDate).toLocaleDateString('es-PE')}

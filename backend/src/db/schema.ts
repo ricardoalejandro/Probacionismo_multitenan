@@ -70,6 +70,7 @@ export const students = pgTable('students', {
   district: text('district'),
   guardianName: text('guardian_name'),
   guardianPhone: text('guardian_phone'),
+  isDniVerified: boolean('is_dni_verified').notNull().default(false),
   isTestData: boolean('is_test_data').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Building2, Users, Shield, Mail, FileStack, Calendar, Layers, MapPin, Wand2 } from 'lucide-react';
+import { ArrowLeft, Building2, Users, Shield, Key, FileStack, Calendar, Layers, MapPin, Wand2 } from 'lucide-react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 export default function AdminPage() {
@@ -90,6 +90,13 @@ export default function AdminPage() {
       description: 'Configurar roles y permisos por módulo',
       icon: Shield,
       path: '/admin/roles',
+    },
+    {
+      id: 'tokens',
+      title: 'Configuración de Tokens',
+      description: 'Configurar tokens para servicios externos',
+      icon: Key,
+      path: '/admin/tokens',
     },
 
     {

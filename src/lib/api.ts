@@ -385,6 +385,22 @@ class ApiClient {
     return response.data;
   }
 
+  // Tokens Config
+  async getTokensConfig() {
+    const response = await this.client.get('/system/config/tokens');
+    return response.data;
+  }
+
+  async saveTokensConfig(data: { dniToken: string }) {
+    const response = await this.client.post('/system/config/tokens', data);
+    return response.data;
+  }
+
+  async validateDNI(dni: string) {
+    const response = await this.client.get(`/system/validate-dni/${dni}`);
+    return response.data;
+  }
+
   // Philosophical Counseling
   async getCounselings(studentId: string) {
     const response = await this.client.get(`/counseling/${studentId}`);

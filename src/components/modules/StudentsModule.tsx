@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
-import { Plus, Search, Edit, History, RefreshCw, GraduationCap, Filter } from 'lucide-react';
+import { Plus, Search, Edit, History, RefreshCw, GraduationCap, Filter, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StudentModuleCardsView, StudentModuleCompactView, StudentModuleListView } from './StudentModuleViews';
 import { Input } from '@/components/ui/input';
@@ -56,6 +56,7 @@ interface Student {
   district?: string | null;
   guardianName?: string | null;
   guardianPhone?: string | null;
+  isDniVerified?: boolean;
   // Campos de student_branches (por filial)
   status: 'Alta' | 'Baja';
   admissionDate: string;
@@ -180,6 +181,69 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
   const [isCounselingDialogOpen, setIsCounselingDialogOpen] = useState(false);
   const [selectedStudentForAction, setSelectedStudentForAction] = useState<Student | null>(null);
   const [existingStudentData, setExistingStudentData] = useState<any>(null);
+
+  // Estado para validación de DNI
+  const [isValidatingDNI, setIsValidatingDNI] = useState(false);
+  const [dniValidated, setDniValidated] = useState(false);
+  // Guardar datos originales verificados para detectar cambios manuales
+  const [verifiedData, setVerifiedData] = useState<{
+    firstName: string;
+    paternalLastName: string;
+    maternalLastName: string;
+  } | null>(null);
+
+  // Verificar si los datos fueron modificados manualmente
+  const isDataModified = verifiedData && (
+    formData.firstName !== verifiedData.firstName ||
+    formData.paternalLastName !== verifiedData.paternalLastName ||
+    formData.maternalLastName !== verifiedData.maternalLastName
+  );
+
+  // Estado real de verificación (validado y no modificado)
+  const isCurrentlyVerified = dniValidated && !isDataModified;
+
+  // Función para validar DNI con API externa
+  const handleValidateDNI = async () => {
+    if (!formData.dni || formData.dni.length !== 8) {
+      toast.error('Ingrese un DNI válido de 8 dígitos');
+      return;
+    }
+
+    try {
+      setIsValidatingDNI(true);
+      const response = await api.validateDNI(formData.dni);
+
+      if (response.success && response.data) {
+        const nombres = response.data.nombres || '';
+        const apellidoPaterno = response.data.apellidoPaterno || '';
+        const apellidoMaterno = response.data.apellidoMaterno || '';
+
+        setFormData(prev => ({
+          ...prev,
+          firstName: nombres,
+          paternalLastName: apellidoPaterno,
+          maternalLastName: apellidoMaterno,
+        }));
+
+        // Guardar datos verificados originales
+        setVerifiedData({
+          firstName: nombres,
+          paternalLastName: apellidoPaterno,
+          maternalLastName: apellidoMaterno,
+        });
+
+        setDniValidated(true);
+        toast.success('✅ Datos del DNI verificados correctamente');
+      } else {
+        toast.error(response.error || 'No se encontraron datos para este DNI');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || error.message || 'Error al validar DNI';
+      toast.error(errorMessage);
+    } finally {
+      setIsValidatingDNI(false);
+    }
+  };
 
 
 
@@ -387,16 +451,21 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
     }
 
     try {
+      // Determinar si los datos están verificados (validado y no modificado)
+      const isDniVerified = formData.documentType === 'DNI' && isCurrentlyVerified;
+
       if (editingStudent) {
         await api.updateStudent(editingStudent.id, {
           ...formData,
           branchId,
+          isDniVerified,
         });
         toast.success('Probacionista actualizado', { duration: 1500 });
       } else {
         await api.createStudent({
           ...formData,
           branchId,
+          isDniVerified,
         });
         toast.success('Probacionista creado', { duration: 1500 });
       }
@@ -458,6 +527,20 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
         : new Date().toISOString().split('T')[0],
       admissionType: 'Nuevo',
     });
+
+    // Cargar estado de verificación si el estudiante ya tiene DNI verificado
+    if (student.isDniVerified && student.documentType === 'DNI') {
+      setDniValidated(true);
+      setVerifiedData({
+        firstName: student.firstName || '',
+        paternalLastName: student.paternalLastName || '',
+        maternalLastName: student.maternalLastName || '',
+      });
+    } else {
+      setDniValidated(false);
+      setVerifiedData(null);
+    }
+
     setIsDialogOpen(true);
   };
 
@@ -483,6 +566,8 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
       admissionType: 'Nuevo',
     });
     setFormErrors({});
+    setDniValidated(false);
+    setVerifiedData(null);
   };
 
   // Handlers para Ubicaciones
@@ -795,6 +880,12 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
               <Badge variant={editingStudent.status === 'Baja' ? 'danger' : 'success'}>
                 {editingStudent.status}
               </Badge>
+              {isCurrentlyVerified && (
+                <Badge variant="secondary" className="bg-accent-2 text-accent-9 border border-accent-6">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Verificado
+                </Badge>
+              )}
             </div>
           )}
 
@@ -810,8 +901,15 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
                 <Select
                   value={formData.documentType}
                   onValueChange={(value) => {
-                    setFormData(prev => ({ ...prev, documentType: value, dni: '' }));
+                    setFormData(prev => ({
+                      ...prev,
+                      documentType: value,
+                      dni: '',
+                      // Limpiar campos de nombre al cambiar a DNI
+                      ...(value === 'DNI' ? { firstName: '', paternalLastName: '', maternalLastName: '' } : {})
+                    }));
                     setFormErrors(prev => ({ ...prev, dni: '' }));
+                    setDniValidated(false);
                   }}
                 >
                   <SelectTrigger className="h-11">
@@ -826,14 +924,36 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
               </div>
               <div>
                 <Label className="text-xs">Número *</Label>
-                <Input
-                  value={formData.dni}
-                  onChange={(e) => handleDniInput(e.target.value)}
-                  placeholder="12345678"
-                  maxLength={formData.documentType === 'DNI' ? 8 : 12}
-                  required
-                  className={`h-11 ${formErrors.dni ? 'border-red-500' : ''}`}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.dni}
+                    onChange={(e) => {
+                      handleDniInput(e.target.value);
+                      setDniValidated(false);
+                    }}
+                    placeholder="12345678"
+                    maxLength={formData.documentType === 'DNI' ? 8 : 12}
+                    required
+                    className={`h-11 flex-1 ${formErrors.dni ? 'border-red-500' : ''}`}
+                  />
+                  {formData.documentType === 'DNI' && (
+                    <Button
+                      type="button"
+                      variant={isCurrentlyVerified ? 'outline' : 'default'}
+                      onClick={handleValidateDNI}
+                      disabled={isValidatingDNI || formData.dni.length !== 8}
+                      className={`h-11 ${isCurrentlyVerified ? 'border-accent-9 text-accent-9' : 'bg-accent-9 hover:bg-accent-10'}`}
+                    >
+                      {isValidatingDNI ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                      ) : isCurrentlyVerified ? (
+                        <><CheckCircle2 className="h-4 w-4 mr-1" /> Verificado</>
+                      ) : (
+                        'Validar'
+                      )}
+                    </Button>
+                  )}
+                </div>
                 {formErrors.dni && (
                   <p className="text-xs text-red-500 mt-1">{formErrors.dni}</p>
                 )}
@@ -849,7 +969,7 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
             </h3>
             <div className="space-y-3">
               <div>
-                <Label className="text-xs">Nombres *</Label>
+                <Label className="text-xs">Nombres * {formData.documentType === 'DNI' && isCurrentlyVerified && <span className="text-accent-9 inline-flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> verificado</span>}</Label>
                 <Input
                   value={formData.firstName}
                   onChange={(e) =>
@@ -858,11 +978,15 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
                   required
                   className="h-11"
                   placeholder="Nombres completos"
+                  disabled={formData.documentType === 'DNI' && !editingStudent && !dniValidated}
                 />
+                {formData.documentType === 'DNI' && !editingStudent && !dniValidated && (
+                  <p className="text-xs text-gray-500 mt-1">Valide el DNI para cargar los datos</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Ap. Paterno *</Label>
+                  <Label className="text-xs">Ap. Paterno * {formData.documentType === 'DNI' && isCurrentlyVerified && <span className="text-accent-9 inline-flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> verificado</span>}</Label>
                   <Input
                     value={formData.paternalLastName}
                     onChange={(e) =>
@@ -873,10 +997,11 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
                     }
                     required
                     className="h-11"
+                    disabled={formData.documentType === 'DNI' && !editingStudent && !dniValidated}
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Ap. Materno *</Label>
+                  <Label className="text-xs">Ap. Materno {formData.documentType === 'DNI' && isCurrentlyVerified && <span className="text-accent-9 inline-flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> verificado</span>}</Label>
                   <Input
                     value={formData.maternalLastName}
                     onChange={(e) =>
@@ -885,8 +1010,8 @@ export default function StudentsModule({ branchId }: { branchId: string }) {
                         maternalLastName: e.target.value,
                       })
                     }
-                    required
                     className="h-11"
+                    disabled={formData.documentType === 'DNI' && !editingStudent && !dniValidated}
                   />
                 </div>
               </div>

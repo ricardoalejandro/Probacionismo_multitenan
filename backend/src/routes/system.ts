@@ -25,7 +25,7 @@ const generateTestDataSchema = z.object({
 });
 
 export const systemRoutes: FastifyPluginAsync = async (fastify) => {
-  
+
   // GET /api/system/config/smtp - Obtener configuración SMTP (ofuscada)
   fastify.get('/config/smtp', {
     onRequest: [fastify.authenticate],
@@ -102,7 +102,7 @@ export const systemRoutes: FastifyPluginAsync = async (fastify) => {
 
     try {
       const result = await testSMTPConnection();
-      
+
       if (result.success) {
         return { success: true, message: result.message };
       } else {
@@ -111,9 +111,9 @@ export const systemRoutes: FastifyPluginAsync = async (fastify) => {
 
     } catch (error: any) {
       console.error('Error al probar SMTP:', error);
-      return reply.code(500).send({ 
-        success: false, 
-        message: `Error al probar conexión: ${error.message}` 
+      return reply.code(500).send({
+        success: false,
+        message: `Error al probar conexión: ${error.message}`
       });
     }
   });
@@ -155,10 +155,10 @@ export const systemRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const options = generateTestDataSchema.parse(request.body);
       const result = await generateTestData(options);
-      
-      return { 
+
+      return {
         message: 'Datos de prueba generados correctamente',
-        data: result 
+        data: result
       };
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -182,14 +182,215 @@ export const systemRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const { branchId } = request.query as { branchId?: string };
       const result = await deleteTestData(branchId);
-      
-      return { 
+
+      return {
         message: 'Datos de prueba eliminados correctamente',
-        data: result 
+        data: result
       };
     } catch (error: any) {
       console.error('Error al eliminar datos de prueba:', error);
       return reply.code(500).send({ error: error.message || 'Error al eliminar datos de prueba' });
+    }
+  });
+
+  // ============================================
+  // RUTAS DE CONFIGURACIÓN DE TOKENS
+  // ============================================
+
+  // GET /api/system/config/tokens - Obtener configuración de tokens
+  fastify.get('/config/tokens', {
+    onRequest: [fastify.authenticate],
+  }, async (request, reply) => {
+    const currentUser = (request.user as any);
+
+    if (currentUser.userType !== 'admin') {
+      return reply.code(403).send({ error: 'No tienes permiso para ver la configuración' });
+    }
+
+    try {
+      const { db } = await import('../db');
+      const { systemConfig } = await import('../db/schema');
+      const { eq } = await import('drizzle-orm');
+
+      const [config] = await db
+        .select()
+        .from(systemConfig)
+        .where(eq(systemConfig.configKey, 'dni_validation_token'))
+        .limit(1);
+
+      if (!config) {
+        return { configured: false, token: null };
+      }
+
+      // Ofuscar el token (mostrar solo últimos 4 caracteres)
+      const tokenValue = config.configValue;
+      const maskedToken = tokenValue.length > 4
+        ? '•'.repeat(tokenValue.length - 4) + tokenValue.slice(-4)
+        : '••••';
+
+      return {
+        configured: true,
+        token: maskedToken,
+        updatedAt: config.updatedAt
+      };
+
+    } catch (error) {
+      console.error('Error al obtener config de tokens:', error);
+      return reply.code(500).send({ error: 'Error al obtener configuración' });
+    }
+  });
+
+  // POST /api/system/config/tokens - Guardar token de consulta DNI
+  fastify.post('/config/tokens', {
+    onRequest: [fastify.authenticate],
+  }, async (request, reply) => {
+    const currentUser = (request.user as any);
+
+    if (currentUser.userType !== 'admin') {
+      return reply.code(403).send({ error: 'No tienes permiso para modificar la configuración' });
+    }
+
+    try {
+      const { dniToken } = request.body as { dniToken: string };
+
+      if (!dniToken || dniToken.trim().length === 0) {
+        return reply.code(400).send({ error: 'El token es requerido' });
+      }
+
+      const { db } = await import('../db');
+      const { systemConfig } = await import('../db/schema');
+      const { eq } = await import('drizzle-orm');
+
+      // Verificar si ya existe
+      const [existing] = await db
+        .select()
+        .from(systemConfig)
+        .where(eq(systemConfig.configKey, 'dni_validation_token'))
+        .limit(1);
+
+      if (existing) {
+        // Actualizar
+        await db
+          .update(systemConfig)
+          .set({
+            configValue: dniToken.trim(),
+            updatedAt: new Date(),
+            updatedBy: currentUser.userId
+          })
+          .where(eq(systemConfig.configKey, 'dni_validation_token'));
+      } else {
+        // Crear
+        await db.insert(systemConfig).values({
+          configKey: 'dni_validation_token',
+          configValue: dniToken.trim(),
+          isEncrypted: false,
+          updatedBy: currentUser.userId
+        });
+      }
+
+      return { message: 'Token guardado correctamente' };
+
+    } catch (error: any) {
+      console.error('Error al guardar token:', error);
+      return reply.code(500).send({ error: 'Error al guardar el token' });
+    }
+  });
+
+  // GET /api/system/validate-dni/:dni - Proxy para validar DNI con API externa
+  fastify.get('/validate-dni/:dni', {
+    onRequest: [fastify.authenticate],
+  }, async (request, reply) => {
+    try {
+      const { dni } = request.params as { dni: string };
+
+      // Validar formato de DNI
+      if (!/^\d{8}$/.test(dni)) {
+        return reply.code(400).send({
+          success: false,
+          error: 'El DNI debe tener exactamente 8 dígitos numéricos'
+        });
+      }
+
+      const { db } = await import('../db');
+      const { systemConfig } = await import('../db/schema');
+      const { eq } = await import('drizzle-orm');
+
+      // Obtener token configurado
+      const [config] = await db
+        .select()
+        .from(systemConfig)
+        .where(eq(systemConfig.configKey, 'dni_validation_token'))
+        .limit(1);
+
+      if (!config || !config.configValue) {
+        return reply.code(400).send({
+          success: false,
+          error: 'No se ha configurado el token de consulta de DNIs. Configure el token en el panel de administración.'
+        });
+      }
+
+      // Llamar a la API externa (HTTPS para evitar pérdida de headers en redirect)
+      const apiUrl = `https://personas.naperu.cloud/api/persona/${dni}`;
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${config.configValue}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error de API externa:', response.status, errorText);
+
+        if (response.status === 401) {
+          return reply.code(401).send({
+            success: false,
+            error: 'Token de consulta inválido o expirado. Verifique la configuración del token.'
+          });
+        }
+
+        if (response.status === 404) {
+          return reply.code(404).send({
+            success: false,
+            error: 'No se encontró información para este DNI'
+          });
+        }
+
+        return reply.code(response.status).send({
+          success: false,
+          error: `Error al consultar el DNI: ${errorText || 'Error desconocido'}`
+        });
+      }
+
+      const data: any = await response.json();
+
+      // Verificar respuesta de la API
+      if (!data.success) {
+        return reply.code(400).send({
+          success: false,
+          error: data.message || 'Error al consultar el DNI'
+        });
+      }
+
+      // Mapear respuesta según formato de la API
+      return {
+        success: true,
+        data: {
+          dni: data.data?.nrodoc || dni,
+          nombres: data.data?.nombres || '',
+          apellidoPaterno: data.data?.apellido_paterno || '',
+          apellidoMaterno: data.data?.apellido_materno || '',
+        }
+      };
+
+    } catch (error: any) {
+      console.error('Error al validar DNI:', error);
+      return reply.code(500).send({
+        success: false,
+        error: `Error al consultar el servicio: ${error.message}`
+      });
     }
   });
 };

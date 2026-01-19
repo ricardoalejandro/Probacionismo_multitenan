@@ -22,6 +22,7 @@ const studentBaseSchema = z.object({
   district: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
   guardianName: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
   guardianPhone: z.string().optional().or(z.literal('')).transform(val => val === '' ? null : val),
+  isDniVerified: z.boolean().optional().default(false),
 });
 
 // Función de validación condicional de documentos
@@ -187,6 +188,7 @@ export const studentRoutes: FastifyPluginAsync = async (fastify) => {
           district: students.district,
           guardianName: students.guardianName,
           guardianPhone: students.guardianPhone,
+          isDniVerified: students.isDniVerified,
           createdAt: students.createdAt,
           updatedAt: students.updatedAt,
           // Desde student_branches
